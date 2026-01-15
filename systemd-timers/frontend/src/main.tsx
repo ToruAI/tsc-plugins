@@ -32,22 +32,32 @@ window.ToruPlugins[PLUGIN_ID] = {
 }
 
 // Dev mode: render directly if not in TSC environment
-if (import.meta.env.DEV) {
+async function startDev() {
   const container = document.getElementById("root")
-  if (container) {
-    // Mock API for development
-    const mockApi: PluginApi = {
-      fetch: async (path, options) => {
-        // In dev, proxy to backend or return mock data
-        return fetch(`http://localhost:3000${path}`, options)
-      },
-      kv: {
-        get: async () => null,
-        set: async () => {},
-      },
-    }
-    
-    root = createRoot(container)
-    root.render(<App api={mockApi} />)
+  if (!container) return
+
+  // Start MSW mock service worker
+  const { worker } = await import('./mocks/browser')
+  await worker.start({
+    onUnhandledRequest: 'bypass', // Don't warn about unhandled requests (e.g., HMR)
+  })
+  console.log('[MSW] Mock service worker started')
+
+  // Mock API for development
+  const mockApi: PluginApi = {
+    fetch: async (path, options) => {
+      return fetch(`http://localhost:3000${path}`, options)
+    },
+    kv: {
+      get: async () => null,
+      set: async () => {},
+    },
   }
+
+  root = createRoot(container)
+  root.render(<App api={mockApi} />)
+}
+
+if (import.meta.env.DEV) {
+  startDev()
 }
