@@ -82,10 +82,10 @@ export function HistoryTab() {
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center gap-4">
+    <div className="space-y-3 sm:space-y-4">
+      <div className="flex items-center gap-2 sm:gap-4">
         <Select value={selectedTimer} onValueChange={setSelectedTimer}>
-          <SelectTrigger className="w-[300px]">
+          <SelectTrigger className="flex-1 sm:flex-none sm:w-[300px]">
             <SelectValue placeholder="Select a timer" />
           </SelectTrigger>
           <SelectContent>
@@ -105,27 +105,27 @@ export function HistoryTab() {
           className="gap-2"
         >
           <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-          Refresh
+          <span className="hidden sm:inline">Refresh</span>
         </Button>
       </div>
 
       {loading ? (
-        <div className="text-center py-12">
-          <p className="text-muted-foreground">Loading history...</p>
+        <div className="text-center py-8 sm:py-12">
+          <p className="text-sm text-muted-foreground">Loading history...</p>
         </div>
       ) : history.length === 0 ? (
-        <div className="text-center py-12 border border-dashed rounded-lg">
-          <p className="text-muted-foreground">No execution history available for this timer.</p>
+        <div className="text-center py-8 sm:py-12 border border-dashed rounded-lg">
+          <p className="text-sm text-muted-foreground">No execution history available.</p>
         </div>
       ) : (
-        <div className="border rounded-lg">
+        <div className="border rounded-lg overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Time</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Duration</TableHead>
-                <TableHead>Trigger</TableHead>
+                <TableHead className="text-xs sm:text-sm">Time</TableHead>
+                <TableHead className="text-xs sm:text-sm">Status</TableHead>
+                <TableHead className="text-xs sm:text-sm hidden sm:table-cell">Duration</TableHead>
+                <TableHead className="text-xs sm:text-sm hidden sm:table-cell">Trigger</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -135,10 +135,10 @@ export function HistoryTab() {
                   className="cursor-pointer hover:bg-muted/50"
                   onClick={() => handleRowClick(execution)}
                 >
-                  <TableCell>{new Date(execution.start_time).toLocaleString()}</TableCell>
+                  <TableCell className="text-xs sm:text-sm">{new Date(execution.start_time).toLocaleString()}</TableCell>
                   <TableCell>{getStatusBadge(execution.status)}</TableCell>
-                  <TableCell>{formatDuration(execution.duration_secs)}</TableCell>
-                  <TableCell>
+                  <TableCell className="hidden sm:table-cell">{formatDuration(execution.duration_secs)}</TableCell>
+                  <TableCell className="hidden sm:table-cell">
                     <Badge variant="outline" className={execution.trigger === 'scheduled' ? '' : 'bg-blue-500/10'}>
                       {execution.trigger}
                     </Badge>
@@ -151,14 +151,14 @@ export function HistoryTab() {
       )}
 
       <Dialog open={!!selectedExecution} onOpenChange={() => setSelectedExecution(null)}>
-        <DialogContent className="max-w-3xl">
+        <DialogContent className="w-[95vw] max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Execution Details</DialogTitle>
+            <DialogTitle className="text-base sm:text-lg">Execution Details</DialogTitle>
           </DialogHeader>
 
           {selectedExecution && (
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4 text-sm">
+            <div className="space-y-3 sm:space-y-4">
+              <div className="grid grid-cols-2 gap-2 sm:gap-4 text-xs sm:text-sm">
                 <div>
                   <div className="text-muted-foreground">Start Time</div>
                   <div className="font-medium">{new Date(selectedExecution.start_time).toLocaleString()}</div>
@@ -181,9 +181,9 @@ export function HistoryTab() {
               </div>
 
               <div>
-                <div className="text-sm text-muted-foreground mb-2">Output</div>
-                <ScrollArea className="h-[300px] w-full rounded border bg-muted/30 p-4">
-                  <pre className="text-sm font-mono whitespace-pre-wrap">
+                <div className="text-xs sm:text-sm text-muted-foreground mb-2">Output</div>
+                <ScrollArea className="h-[200px] sm:h-[300px] w-full rounded border bg-muted/30 p-2 sm:p-4">
+                  <pre className="text-xs sm:text-sm font-mono whitespace-pre-wrap break-all">
                     {selectedExecution.output.join('\n')}
                   </pre>
                 </ScrollArea>

@@ -69,10 +69,10 @@ export function SettingsTab() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="space-y-3 sm:space-y-0 sm:flex sm:items-center sm:justify-between">
         <div>
-          <h2 className="text-lg font-semibold">Timer Selection</h2>
-          <p className="text-sm text-muted-foreground">Choose which timers to monitor on the Timers tab</p>
+          <h2 className="text-base sm:text-lg font-semibold">Timer Selection</h2>
+          <p className="text-xs sm:text-sm text-muted-foreground">Choose which timers to monitor</p>
         </div>
 
         <div className="flex gap-2">
@@ -81,20 +81,20 @@ export function SettingsTab() {
             variant="outline"
             onClick={fetchData}
             disabled={loading}
-            className="gap-2"
+            className="flex-1 sm:flex-none gap-2"
           >
             <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-            Refresh
+            <span className="hidden sm:inline">Refresh</span>
           </Button>
 
           <Button
             size="sm"
             onClick={handleSave}
             disabled={saving}
-            className="gap-2"
+            className="flex-1 sm:flex-none gap-2"
           >
             <Save className="h-4 w-4" />
-            {saving ? 'Saving...' : 'Save Settings'}
+            {saving ? 'Saving...' : 'Save'}
           </Button>
         </div>
       </div>
@@ -102,31 +102,32 @@ export function SettingsTab() {
       {message && (
         <Alert variant={message.type === 'error' ? 'destructive' : 'default'} className={message.type === 'success' ? 'border-green-500/20 bg-green-500/10' : ''}>
           {message.type === 'success' && <CheckCircle className="h-4 w-4 text-green-600" />}
-          <AlertDescription>{message.text}</AlertDescription>
+          <AlertDescription className="text-sm">{message.text}</AlertDescription>
         </Alert>
       )}
 
       {availableTimers.length === 0 ? (
-        <div className="text-center py-12 border border-dashed rounded-lg">
-          <p className="text-muted-foreground">No timers found on the system.</p>
+        <div className="text-center py-8 sm:py-12 border border-dashed rounded-lg">
+          <p className="text-sm text-muted-foreground">No timers found on the system.</p>
         </div>
       ) : (
         <Card>
-          <CardContent className="p-6">
-            <div className="space-y-3">
+          <CardContent className="p-3 sm:p-6">
+            <div className="space-y-1 sm:space-y-2">
               {availableTimers.map((timer) => (
-                <div key={timer.name} className="flex items-center space-x-3 p-3 rounded-lg hover:bg-muted/30 transition-colors">
+                <div key={timer.name} className="flex items-start gap-3 p-2 sm:p-3 rounded-lg hover:bg-muted/30 transition-colors">
                   <Checkbox
                     id={timer.name}
                     checked={watchedTimers.includes(timer.name)}
                     onCheckedChange={(checked) => handleToggleTimer(timer.name, checked as boolean)}
+                    className="mt-0.5"
                   />
                   <Label
                     htmlFor={timer.name}
-                    className="flex-1 cursor-pointer space-y-1"
+                    className="flex-1 cursor-pointer space-y-0.5"
                   >
-                    <div className="font-medium">{timer.name.replace('.timer', '')}</div>
-                    <div className="text-sm text-muted-foreground">{timer.description}</div>
+                    <div className="text-sm font-medium leading-tight">{timer.name.replace('.timer', '')}</div>
+                    <div className="text-xs text-muted-foreground leading-tight">{timer.description}</div>
                   </Label>
                 </div>
               ))}
@@ -135,7 +136,7 @@ export function SettingsTab() {
         </Card>
       )}
 
-      <div className="text-sm text-muted-foreground">
+      <div className="text-xs sm:text-sm text-muted-foreground">
         Selected: {watchedTimers.length} of {availableTimers.length} timers
       </div>
     </div>

@@ -47,9 +47,9 @@ export function TimersTab() {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3 sm:space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold">Active Timers</h2>
+        <h2 className="text-base sm:text-lg font-semibold">Active Timers</h2>
         <Button
           size="sm"
           variant="outline"
@@ -58,7 +58,7 @@ export function TimersTab() {
           className="gap-2"
         >
           <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-          Refresh
+          <span className="hidden sm:inline">Refresh</span>
         </Button>
       </div>
 

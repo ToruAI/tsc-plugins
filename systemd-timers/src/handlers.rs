@@ -296,18 +296,29 @@ pub async fn handle_get_history<E: CommandExecutor>(
 }
 
 /// Handle GET /timers/:name/history/:invocation_id - get execution details
-pub async fn handle_get_history_details<E: CommandExecutor>(
+pub async fn handle_get_history_details<E: CommandExecutor + Clone>(
     executor: E,
     timer_name: &str,
     invocation_id: &str,
 ) -> TimerResult<HttpResponse> {
     // Convert timer name to service name
     let service_name = timer_name.replace(".timer", ".service");
+    let base_name = service_name.trim_end_matches(".service");
 
-    let client = JournalClient::new(executor);
+    let client = JournalClient::new(executor.clone());
 
     match client.get_execution_details(&service_name, invocation_id).await {
-        Ok(details) => json_response(200, details),
+        Ok(mut details) => {
+            // Try to get actual log file output instead of journal messages
+            let log_file = format!("/var/log/{}.log", base_name);
+            if let Ok(output) = executor.execute("tail", &["-n", "200", &log_file]).await {
+                if output.exit_code == 0 && !output.stdout.is_empty() {
+                    // Replace journal output with actual log file content
+                    details.output = output.stdout.lines().map(|s| s.to_string()).collect();
+                }
+            }
+            json_response(200, details)
+        }
         Err(TimerError::NotFound(_)) => {
             error_response(404, "Execution not found")
         }

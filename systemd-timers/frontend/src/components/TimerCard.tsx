@@ -32,20 +32,20 @@ export function TimerCard({ timer, onRun, onTest, onToggle }: TimerCardProps) {
 
   return (
     <Card className="border-border/50 hover:border-border transition-colors">
-      <CardContent className="p-4">
-        <div className="flex items-start justify-between gap-4">
+      <CardContent className="p-3 sm:p-4">
+        <div className="space-y-3 sm:space-y-0 sm:flex sm:items-start sm:justify-between sm:gap-4">
           <div className="flex-1 space-y-2">
-            <div className="flex items-center gap-2">
-              <h3 className="font-semibold text-lg">{timer.name.replace('.timer', '')}</h3>
-              <Badge variant="outline" className={timer.enabled ? 'border-green-500/20 bg-green-500/10' : ''}>
+            <div className="flex items-center gap-2 flex-wrap">
+              <h3 className="font-semibold text-base sm:text-lg">{timer.name.replace('.timer', '')}</h3>
+              <Badge variant="outline" className={`text-xs ${timer.enabled ? 'border-green-500/20 bg-green-500/10' : ''}`}>
                 {timer.enabled ? 'Enabled' : 'Disabled'}
               </Badge>
             </div>
 
-            <div className="grid grid-cols-2 gap-4 text-sm">
+            <div className="grid grid-cols-2 gap-x-3 gap-y-2 text-xs sm:text-sm">
               <div>
                 <div className="text-muted-foreground">Schedule</div>
-                <div className="font-medium">{timer.schedule_human || timer.schedule}</div>
+                <div className="font-medium truncate">{timer.schedule_human || timer.schedule}</div>
               </div>
 
               <div>
@@ -61,10 +61,10 @@ export function TimerCard({ timer, onRun, onTest, onToggle }: TimerCardProps) {
               <div>
                 <div className="text-muted-foreground">Last Result</div>
                 {timer.last_result ? (
-                  <Badge variant="outline" className={getStatusColor(timer.last_result)}>
-                    {timer.last_result === 'success' ? '✓ Success' :
-                     timer.last_result === 'failed' ? '✗ Failed' :
-                     '⏳ Running'}
+                  <Badge variant="outline" className={`text-xs ${getStatusColor(timer.last_result)}`}>
+                    {timer.last_result === 'success' ? '✓ OK' :
+                     timer.last_result === 'failed' ? '✗ Fail' :
+                     '⏳ Run'}
                   </Badge>
                 ) : (
                   <div className="font-medium">n/a</div>
@@ -73,13 +73,13 @@ export function TimerCard({ timer, onRun, onTest, onToggle }: TimerCardProps) {
             </div>
           </div>
 
-          <div className="flex flex-col gap-2">
+          <div className="flex gap-2 sm:flex-col">
             <Button
               size="sm"
               onClick={() => onRun(timer.name)}
-              className="gap-2"
+              className="flex-1 sm:flex-none gap-1.5"
             >
-              <Play className="h-4 w-4" />
+              <Play className="h-3.5 w-3.5" />
               Run
             </Button>
 
@@ -87,9 +87,9 @@ export function TimerCard({ timer, onRun, onTest, onToggle }: TimerCardProps) {
               size="sm"
               variant="outline"
               onClick={() => onTest(timer.name)}
-              className="gap-2"
+              className="flex-1 sm:flex-none gap-1.5"
             >
-              <TestTube className="h-4 w-4" />
+              <TestTube className="h-3.5 w-3.5" />
               Test
             </Button>
 
@@ -97,17 +97,19 @@ export function TimerCard({ timer, onRun, onTest, onToggle }: TimerCardProps) {
               size="sm"
               variant="outline"
               onClick={() => onToggle(timer.name, !timer.enabled)}
-              className="gap-2"
+              className="flex-1 sm:flex-none gap-1.5"
             >
               {timer.enabled ? (
                 <>
-                  <Pause className="h-4 w-4" />
-                  Disable
+                  <Pause className="h-3.5 w-3.5" />
+                  <span className="hidden sm:inline">Disable</span>
+                  <span className="sm:hidden">Off</span>
                 </>
               ) : (
                 <>
-                  <PlayCircle className="h-4 w-4" />
-                  Enable
+                  <PlayCircle className="h-3.5 w-3.5" />
+                  <span className="hidden sm:inline">Enable</span>
+                  <span className="sm:hidden">On</span>
                 </>
               )}
             </Button>
