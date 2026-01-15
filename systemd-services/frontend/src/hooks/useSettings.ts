@@ -46,7 +46,6 @@ export function useSettings(api: PluginApi) {
     try {
       await api.kv.set("watched_services", JSON.stringify(services))
       setWatchedServices(services)
-      return true
     } catch (err) {
       console.error("Error saving watched services:", err)
       throw err
