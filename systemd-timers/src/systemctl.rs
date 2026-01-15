@@ -69,16 +69,14 @@ impl<E: CommandExecutor> SystemctlClient<E> {
 
         let service = Self::timer_to_service(name)?;
 
+        // Use --no-block to return immediately without waiting for service completion
         let output = if test_mode {
-            // Test mode: run with dry-run flag or special env var
-            // For now, we'll just start the service - the service itself handles test mode
             self.executor
-                .execute("systemctl", &["start", &service])
+                .execute("systemctl", &["start", "--no-block", &service])
                 .await?
         } else {
-            // Production mode: full run
             self.executor
-                .execute("systemctl", &["start", &service])
+                .execute("systemctl", &["start", "--no-block", &service])
                 .await?
         };
 
