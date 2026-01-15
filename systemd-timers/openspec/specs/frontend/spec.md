@@ -1,5 +1,8 @@
-## Frontend Specification
+# frontend Specification
 
+## Purpose
+TBD - created by archiving change 2026-01-15-add-systemd-timers-plugin. Update Purpose after archive.
+## Requirements
 ### Requirement: Tab Navigation
 The frontend SHALL provide tabbed navigation between views.
 
@@ -159,6 +162,7 @@ The frontend SHALL support development without backend.
 - **AND** bundle size is not affected by mocks
 
 ### Requirement: Data Types
+The frontend SHALL use consistent TypeScript types for API data.
 
 #### ExecutionHistory type
 ```typescript
@@ -173,3 +177,4 @@ interface ExecutionHistory {
   trigger: "scheduled" | "manual";
 }
 ```
+

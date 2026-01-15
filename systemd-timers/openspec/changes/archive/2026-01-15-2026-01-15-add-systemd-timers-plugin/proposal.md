@@ -3,8 +3,15 @@
 ## Summary
 Build a TSC plugin for managing scheduled tasks (systemd timers) with execution history and manual run options.
 
-## Motivation
+## Why
 Scraper timers (`chfscraper-scrape-*.timer`) run on schedule. Need visual way to see next/last runs, trigger manual runs (full or test), view execution history with success/failure status, and manage timer state.
+
+## What Changes
+- New TSC plugin `systemd-timers` with Rust backend and React frontend
+- Backend API endpoints for listing, running, enabling/disabling timers
+- Execution history via journalctl parsing
+- Frontend with Timers, History, and Settings tabs
+- KV storage for persisting watched timer selection
 
 ## Scope
 
