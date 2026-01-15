@@ -2,6 +2,7 @@ import { createRoot } from "react-dom/client"
 import type { Root } from "react-dom/client"
 import App from "./App"
 import type { PluginApi } from "./types"
+import "./index.css"
 
 const PLUGIN_ID = "systemd-timers"
 let root: Root | null = null
