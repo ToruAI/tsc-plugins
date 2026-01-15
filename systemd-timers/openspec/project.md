@@ -42,7 +42,9 @@ TSC plugin for managing scheduled tasks (systemd timers).
 | POST | `/timers/:name/test` | Test run (no telegram) |
 | POST | `/timers/:name/enable` | Enable timer |
 | POST | `/timers/:name/disable` | Disable timer |
-| GET | `/timers/:name/history` | Execution history |
+| GET | `/history` | All execution history (combined) |
+| GET | `/timers/:name/history` | Execution history for timer |
+| GET | `/timers/:name/history/:id` | Execution details |
 
 ## KV Storage
 

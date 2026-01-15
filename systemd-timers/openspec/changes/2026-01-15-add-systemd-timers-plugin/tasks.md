@@ -156,3 +156,14 @@
 | GET history | 4 | 100% |
 | KV storage | 3 | 100% |
 | concurrent requests | 2 | 100% |
+
+---
+
+## Phase 15: Frontend UX Improvements (2026-01-15)
+- [x] 15.1: Add MSW mock server for frontend-only development
+- [x] 15.2: Replace browser alert() with sonner toast notifications
+- [x] 15.3: Extract shared utilities (formatters, StatusIcon)
+- [x] 15.4: Add loading states to action buttons (Run/Test/Toggle)
+- [x] 15.5: Refactor History tab - show all timers by default with filter
+- [x] 15.6: Add timer_name to ExecutionHistory for combined view
+- [x] 15.7: Add GET /history endpoint for combined history
