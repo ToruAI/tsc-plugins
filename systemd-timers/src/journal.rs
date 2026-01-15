@@ -48,7 +48,7 @@ pub struct ExecutionDetails {
 /// Journal entry from journalctl JSON output
 #[derive(Debug, Clone, Deserialize)]
 struct JournalEntry {
-    #[serde(rename = "_SYSTEMD_INVOCATION_ID")]
+    #[serde(rename = "INVOCATION_ID")]
     invocation_id: Option<String>,
 
     #[serde(rename = "__REALTIME_TIMESTAMP")]
@@ -109,7 +109,7 @@ impl<E: CommandExecutor> JournalClient<E> {
         service: &str,
         invocation_id: &str,
     ) -> TimerResult<ExecutionDetails> {
-        let invocation_filter = format!("_SYSTEMD_INVOCATION_ID={}", invocation_id);
+        let invocation_filter = format!("INVOCATION_ID={}", invocation_id);
         let output = self.executor
             .execute("journalctl", &[
                 "-u", service,
@@ -361,8 +361,8 @@ mod tests {
     async fn test_get_execution_history_success() {
         let mock = MockCommandExecutor::new();
         let output = CommandOutput {
-            stdout: r#"{"_SYSTEMD_INVOCATION_ID":"abc123","__REALTIME_TIMESTAMP":"1705320000000000","MESSAGE":"Starting","_SYSTEMD_UNIT":"test.service"}
-{"_SYSTEMD_INVOCATION_ID":"abc123","__REALTIME_TIMESTAMP":"1705320045000000","EXIT_STATUS":"0","_SYSTEMD_UNIT":"test.service"}
+            stdout: r#"{"INVOCATION_ID":"abc123","__REALTIME_TIMESTAMP":"1705320000000000","MESSAGE":"Starting","_SYSTEMD_UNIT":"test.service"}
+{"INVOCATION_ID":"abc123","__REALTIME_TIMESTAMP":"1705320045000000","EXIT_STATUS":"0","_SYSTEMD_UNIT":"test.service"}
 "#.to_string(),
             stderr: String::new(),
             exit_code: 0,
@@ -382,8 +382,8 @@ mod tests {
     async fn test_get_execution_history_failed() {
         let mock = MockCommandExecutor::new();
         let output = CommandOutput {
-            stdout: r#"{"_SYSTEMD_INVOCATION_ID":"def456","__REALTIME_TIMESTAMP":"1705320000000000","MESSAGE":"Starting","_SYSTEMD_UNIT":"test.service"}
-{"_SYSTEMD_INVOCATION_ID":"def456","__REALTIME_TIMESTAMP":"1705320120000000","EXIT_STATUS":"1","_SYSTEMD_UNIT":"test.service"}
+            stdout: r#"{"INVOCATION_ID":"def456","__REALTIME_TIMESTAMP":"1705320000000000","MESSAGE":"Starting","_SYSTEMD_UNIT":"test.service"}
+{"INVOCATION_ID":"def456","__REALTIME_TIMESTAMP":"1705320120000000","EXIT_STATUS":"1","_SYSTEMD_UNIT":"test.service"}
 "#.to_string(),
             stderr: String::new(),
             exit_code: 0,
@@ -403,7 +403,7 @@ mod tests {
         let mock = MockCommandExecutor::new();
         // Only first entry, no second one means still running
         let output = CommandOutput {
-            stdout: r#"{"_SYSTEMD_INVOCATION_ID":"ghi789","__REALTIME_TIMESTAMP":"1705320000000000","MESSAGE":"Starting","_SYSTEMD_UNIT":"test.service"}"#.to_string(),
+            stdout: r#"{"INVOCATION_ID":"ghi789","__REALTIME_TIMESTAMP":"1705320000000000","MESSAGE":"Starting","_SYSTEMD_UNIT":"test.service"}"#.to_string(),
             stderr: String::new(),
             exit_code: 0,
         };
@@ -424,7 +424,7 @@ mod tests {
         let mut entries = Vec::new();
         for i in 0..50 {
             entries.push(format!(
-                r#"{{"_SYSTEMD_INVOCATION_ID":"inv{}","__REALTIME_TIMESTAMP":"{}","MESSAGE":"Test","EXIT_STATUS":"0","_SYSTEMD_UNIT":"test.service"}}"#,
+                r#"{{"INVOCATION_ID":"inv{}","__REALTIME_TIMESTAMP":"{}","MESSAGE":"Test","EXIT_STATUS":"0","_SYSTEMD_UNIT":"test.service"}}"#,
                 i,
                 1705320000000000u64 + (i * 1000000)
             ));
@@ -446,14 +446,14 @@ mod tests {
     async fn test_get_execution_details() {
         let mock = MockCommandExecutor::new();
         let output = CommandOutput {
-            stdout: r#"{"_SYSTEMD_INVOCATION_ID":"abc123","__REALTIME_TIMESTAMP":"1705320000000000","MESSAGE":"Starting scrape...","_SYSTEMD_UNIT":"test.service"}
-{"_SYSTEMD_INVOCATION_ID":"abc123","__REALTIME_TIMESTAMP":"1705320005000000","MESSAGE":"Proxy enabled","_SYSTEMD_UNIT":"test.service"}
-{"_SYSTEMD_INVOCATION_ID":"abc123","__REALTIME_TIMESTAMP":"1705320045000000","MESSAGE":"Complete","EXIT_STATUS":"0","_SYSTEMD_UNIT":"test.service"}
+            stdout: r#"{"INVOCATION_ID":"abc123","__REALTIME_TIMESTAMP":"1705320000000000","MESSAGE":"Starting scrape...","_SYSTEMD_UNIT":"test.service"}
+{"INVOCATION_ID":"abc123","__REALTIME_TIMESTAMP":"1705320005000000","MESSAGE":"Proxy enabled","_SYSTEMD_UNIT":"test.service"}
+{"INVOCATION_ID":"abc123","__REALTIME_TIMESTAMP":"1705320045000000","MESSAGE":"Complete","EXIT_STATUS":"0","_SYSTEMD_UNIT":"test.service"}
 "#.to_string(),
             stderr: String::new(),
             exit_code: 0,
         };
-        mock.expect("journalctl -u test.service _SYSTEMD_INVOCATION_ID=abc123 -o json --no-pager", output);
+        mock.expect("journalctl -u test.service INVOCATION_ID=abc123 -o json --no-pager", output);
 
         let client = JournalClient::new(mock);
         let details = client.get_execution_details("test.service", "abc123").await.unwrap();
@@ -469,7 +469,7 @@ mod tests {
         let client = JournalClient::new(MockCommandExecutor::new());
         let output = r#"{"valid":"json"}
 not json at all
-{"_SYSTEMD_INVOCATION_ID":"test"}
+{"INVOCATION_ID":"test"}
 "#;
         let entries = client.parse_journal_entries(output).unwrap();
 
