@@ -1,6 +1,7 @@
 // Module exports for systemd-services plugin
 
 pub mod error;
+pub mod handlers;
 pub mod systemctl;
 
 // Re-export commonly used types

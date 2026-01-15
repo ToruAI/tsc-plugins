@@ -80,6 +80,12 @@ impl From<serde_json::Error> for ServiceError {
     }
 }
 
+impl From<toru_plugin_api::PluginError> for ServiceError {
+    fn from(err: toru_plugin_api::PluginError) -> Self {
+        ServiceError::Other(format!("Plugin error: {}", err))
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
