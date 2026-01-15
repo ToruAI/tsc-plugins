@@ -76,43 +76,43 @@
 - [x] 9.8: KV storage integration for watched_timers
 
 ## Phase 10: Backend - Integration Tests
-- [ ] 10.1: Test GET /timers with mocked systemctl/journal
-- [ ] 10.2: Test GET /timers/available endpoint
-- [ ] 10.3: Test POST run/test endpoints
-- [ ] 10.4: Test POST enable/disable endpoints
-- [ ] 10.5: Test GET history list endpoint
-- [ ] 10.6: Test GET history details endpoint
-- [ ] 10.7: Test KV storage save/load cycle
-- [ ] 10.8: Test partial failures handling
-- [ ] 10.9: Test concurrent requests
-- [ ] 10.10: Verify >= 90% line coverage for handlers module
+- [x] 10.1: Test GET /timers with mocked systemctl/journal
+- [x] 10.2: Test GET /timers/available endpoint
+- [x] 10.3: Test POST run/test endpoints
+- [x] 10.4: Test POST enable/disable endpoints
+- [x] 10.5: Test GET history list endpoint
+- [x] 10.6: Test GET history details endpoint
+- [x] 10.7: Test KV storage save/load cycle
+- [x] 10.8: Test partial failures handling
+- [x] 10.9: Test concurrent requests
+- [x] 10.10: Verify >= 90% line coverage for handlers module
 
 ## Phase 11: Frontend - Timers Tab
-- [ ] 11.1: App.tsx with Tabs (Timers | History | Settings)
-- [ ] 11.2: TimerCard component (schedule, next/last run, actions)
-- [ ] 11.3: TimersList - fetch and render cards
-- [ ] 11.4: Run/Test confirmation dialog
-- [ ] 11.5: Auto-refresh every 60s
+- [x] 11.1: App.tsx with Tabs (Timers | History | Settings)
+- [x] 11.2: TimerCard component (schedule, next/last run, actions)
+- [x] 11.3: TimersList - fetch and render cards
+- [x] 11.4: Run/Test confirmation dialog
+- [x] 11.5: Auto-refresh every 60s
 
 ## Phase 12: Frontend - History Tab
-- [ ] 12.1: Timer selector dropdown
-- [ ] 12.2: History table component
-- [ ] 12.3: Pagination controls
-- [ ] 12.4: ExecutionDetailDialog - modal with full output
-- [ ] 12.5: Status color coding (green/red/yellow)
+- [x] 12.1: Timer selector dropdown
+- [x] 12.2: History table component
+- [x] 12.3: Pagination controls
+- [x] 12.4: ExecutionDetailDialog - modal with full output
+- [x] 12.5: Status color coding (green/red/yellow)
 
 ## Phase 13: Frontend - Settings Tab
-- [ ] 13.1: Fetch available timers from API
-- [ ] 13.2: Multiselect component for timer selection
-- [ ] 13.3: Save to KV on change
-- [ ] 13.4: Toast confirmation
+- [x] 13.1: Fetch available timers from API
+- [x] 13.2: Multiselect component for timer selection
+- [x] 13.3: Save to KV on change
+- [x] 13.4: Toast confirmation
 
 ## Phase 14: Build & Manual Testing
-- [ ] 14.1: Run `cargo test` - all tests pass
+- [x] 14.1: Run `cargo test` - all tests pass
 - [ ] 14.2: Run `cargo tarpaulin` - verify >= 90% coverage
-- [ ] 14.3: Build release binary
-- [ ] 14.4: Build frontend bundle
-- [ ] 14.5: Test --metadata flag output
+- [x] 14.3: Build release binary
+- [x] 14.4: Build frontend bundle
+- [x] 14.5: Test --metadata flag output
 - [ ] 14.6: Test with TSC locally (mock timers if needed)
 - [ ] 14.7: Deploy to VPS and test with real timers
 - [ ] 14.8: Verify history parsing with real journal data
