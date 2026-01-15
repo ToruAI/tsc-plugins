@@ -41,24 +41,27 @@ export function TimersTab() {
   if (loading && timers.length === 0) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="text-muted-foreground">Loading timers...</div>
+        <RefreshCw className="h-5 w-5 animate-spin text-muted-foreground" />
       </div>
     );
   }
 
   return (
-    <div className="space-y-3 sm:space-y-4">
+    <div className="space-y-3">
+      {/* Header */}
       <div className="flex items-center justify-between">
-        <h2 className="text-base sm:text-lg font-semibold">Active Timers</h2>
+        <div className="text-sm text-muted-foreground">
+          {timers.length} timer{timers.length !== 1 ? 's' : ''}
+        </div>
         <Button
           size="sm"
-          variant="outline"
+          variant="ghost"
           onClick={refresh}
           disabled={loading}
-          className="gap-2"
+          className="h-8 gap-1.5"
         >
-          <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-          <span className="hidden sm:inline">Refresh</span>
+          <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
+          Refresh
         </Button>
       </div>
 
@@ -71,12 +74,15 @@ export function TimersTab() {
 
       {timers.length === 0 ? (
         <div className="text-center py-12 border border-dashed rounded-lg">
-          <p className="text-muted-foreground">
-            No timers configured. Go to Settings to select timers to watch.
+          <p className="text-sm text-muted-foreground">
+            No timers configured.
+          </p>
+          <p className="text-xs text-muted-foreground mt-1">
+            Go to Settings to select timers to watch.
           </p>
         </div>
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-2">
           {timers.map((timer) => (
             <TimerCard
               key={timer.name}

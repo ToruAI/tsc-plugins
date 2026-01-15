@@ -3,37 +3,42 @@ import { TimersTab } from './components/TimersTab';
 import { HistoryTab } from './components/HistoryTab';
 import { SettingsTab } from './components/SettingsTab';
 import type { PluginApi } from './types';
+import { Clock, History, Settings } from 'lucide-react';
 
 interface AppProps {
   api: PluginApi;
 }
 
 function App({ api }: AppProps) {
-  // TODO: Pass api to child components or use context
   void api;
+  
   return (
-    <div className="p-3 sm:p-6 w-full max-w-6xl mx-auto">
-      <div className="flex items-center gap-2 mb-4 sm:mb-6">
-        <span className="text-xl sm:text-2xl">⏰</span>
-        <h1 className="text-xl sm:text-2xl font-bold">Scheduled Tasks</h1>
-      </div>
-
+    <div className="min-h-screen p-3 sm:p-4 max-w-2xl mx-auto">
       <Tabs defaultValue="timers" className="w-full">
-        <TabsList className="w-full sm:w-auto grid grid-cols-3 sm:inline-flex">
-          <TabsTrigger value="timers">Timers</TabsTrigger>
-          <TabsTrigger value="history">History</TabsTrigger>
-          <TabsTrigger value="settings">Settings</TabsTrigger>
+        <TabsList className="w-full grid grid-cols-3 h-10">
+          <TabsTrigger value="timers" className="gap-1.5 text-xs sm:text-sm">
+            <Clock className="h-3.5 w-3.5" />
+            <span>Timers</span>
+          </TabsTrigger>
+          <TabsTrigger value="history" className="gap-1.5 text-xs sm:text-sm">
+            <History className="h-3.5 w-3.5" />
+            <span>History</span>
+          </TabsTrigger>
+          <TabsTrigger value="settings" className="gap-1.5 text-xs sm:text-sm">
+            <Settings className="h-3.5 w-3.5" />
+            <span>Settings</span>
+          </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="timers" className="mt-4 sm:mt-6">
+        <TabsContent value="timers" className="mt-3">
           <TimersTab />
         </TabsContent>
 
-        <TabsContent value="history" className="mt-4 sm:mt-6">
+        <TabsContent value="history" className="mt-3">
           <HistoryTab />
         </TabsContent>
 
-        <TabsContent value="settings" className="mt-4 sm:mt-6">
+        <TabsContent value="settings" className="mt-3">
           <SettingsTab />
         </TabsContent>
       </Tabs>
