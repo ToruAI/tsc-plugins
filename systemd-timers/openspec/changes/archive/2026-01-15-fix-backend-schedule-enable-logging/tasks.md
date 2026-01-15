@@ -22,8 +22,3 @@
 - [x] 3.6 Add unit tests for log parsing functions
 - [x] 3.7 Update handlers to use `LogReader` instead of `JournalClient`
 
-## 4. Deployment (TODO on server)
-- [ ] 4.1 Deploy `timer-runner` script to `/usr/local/bin/timer-runner`
-- [ ] 4.2 Create `/var/log/timers/` directory with proper permissions
-- [ ] 4.3 Update systemd service files to use timer-runner wrapper
-- [ ] 4.4 Rebuild and deploy updated plugin binary
