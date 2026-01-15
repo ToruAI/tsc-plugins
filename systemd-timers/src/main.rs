@@ -290,10 +290,11 @@ async fn main() {
                                 MessagePayload::Lifecycle { action, payload } => {
                                     if action == "init" {
                                         if let Some(init_payload) = payload {
+                                            let plugin_id = SystemdTimersPlugin::metadata().id;
                                             let ctx = PluginContext {
                                                 instance_id: init_payload.instance_id.clone(),
                                                 config: toru_plugin_api::PluginConfig::default(),
-                                                kv: Box::new(DummyKvStore),
+                                                kv: Box::new(FileKvStore::new(&plugin_id)),
                                             };
                                             if let Err(e) = plugin.init(ctx).await {
                                                 eprintln!(
@@ -406,20 +407,65 @@ fn create_http_response(request_id: String, http_response: HttpResponse) -> Mess
     )
 }
 
-// Dummy KV store implementation (TSC will provide real one)
-struct DummyKvStore;
+// File-based KV store implementation for persistent settings
+use std::sync::Mutex;
 
-#[async_trait::async_trait]
-impl PluginKvStore for DummyKvStore {
-    async fn get(&self, _key: &str) -> toru_plugin_api::PluginResult<Option<String>> {
-        Ok(None)
+struct FileKvStore {
+    file_path: std::path::PathBuf,
+    cache: Mutex<HashMap<String, String>>,
+}
+
+impl FileKvStore {
+    fn new(plugin_id: &str) -> Self {
+        let data_dir = std::path::PathBuf::from("/var/lib/toru-plugins");
+        std::fs::create_dir_all(&data_dir).ok();
+        let file_path = data_dir.join(format!("{}.json", plugin_id));
+
+        // Load existing data
+        let cache = if file_path.exists() {
+            std::fs::read_to_string(&file_path)
+                .ok()
+                .and_then(|s| serde_json::from_str(&s).ok())
+                .unwrap_or_default()
+        } else {
+            HashMap::new()
+        };
+
+        Self {
+            file_path,
+            cache: Mutex::new(cache),
+        }
     }
 
-    async fn set(&self, _key: &str, _value: &str) -> toru_plugin_api::PluginResult<()> {
+    fn save(&self) -> std::io::Result<()> {
+        let cache = self.cache.lock().unwrap();
+        let json = serde_json::to_string_pretty(&*cache)?;
+        std::fs::write(&self.file_path, json)
+    }
+}
+
+#[async_trait::async_trait]
+impl PluginKvStore for FileKvStore {
+    async fn get(&self, key: &str) -> toru_plugin_api::PluginResult<Option<String>> {
+        let cache = self.cache.lock().unwrap();
+        Ok(cache.get(key).cloned())
+    }
+
+    async fn set(&self, key: &str, value: &str) -> toru_plugin_api::PluginResult<()> {
+        {
+            let mut cache = self.cache.lock().unwrap();
+            cache.insert(key.to_string(), value.to_string());
+        }
+        self.save().map_err(|e| toru_plugin_api::PluginError::Internal(e.to_string()))?;
         Ok(())
     }
 
-    async fn delete(&self, _key: &str) -> toru_plugin_api::PluginResult<()> {
+    async fn delete(&self, key: &str) -> toru_plugin_api::PluginResult<()> {
+        {
+            let mut cache = self.cache.lock().unwrap();
+            cache.remove(key);
+        }
+        self.save().map_err(|e| toru_plugin_api::PluginError::Internal(e.to_string()))?;
         Ok(())
     }
 }
