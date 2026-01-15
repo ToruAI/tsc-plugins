@@ -202,9 +202,9 @@ export function HistoryTab() {
               {/* Output */}
               <div className="flex-1 min-h-0">
                 <div className="text-xs text-muted-foreground mb-1.5">Output</div>
-                <ScrollArea className="h-[250px] rounded border bg-muted/30">
-                  <pre className="p-3 text-xs font-mono whitespace-pre-wrap break-all">
-                    {selectedExecution.output.length > 0 
+                <ScrollArea className="h-[50vh] rounded border bg-muted/30">
+                  <pre className="p-3 text-xs font-mono whitespace-pre-wrap break-words">
+                    {selectedExecution.output.length > 0
                       ? selectedExecution.output.join('\n')
                       : '(no output)'}
                   </pre>

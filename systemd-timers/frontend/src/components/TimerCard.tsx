@@ -49,7 +49,7 @@ export function TimerCard({ timer, onRun, onTest, onToggle }: TimerCardProps) {
         <div className="flex-1 p-3 min-w-0">
           {/* Top row: name + enabled badge */}
           <div className="flex items-center gap-2 mb-2">
-            <h3 className="font-semibold truncate">
+            <h3 className="font-semibold break-words">
               {timer.name.replace('.timer', '')}
             </h3>
             {!timer.enabled && (

@@ -13,7 +13,7 @@ function App({ api }: AppProps) {
   void api;
   
   return (
-    <div className="min-h-screen p-3 sm:p-4 max-w-2xl mx-auto">
+    <div className="min-h-screen p-2 sm:p-4 max-w-2xl mx-auto">
       <Tabs defaultValue="timers" className="w-full">
         <TabsList className="w-full grid grid-cols-3 h-10">
           <TabsTrigger value="timers" className="gap-1.5 text-xs sm:text-sm">
