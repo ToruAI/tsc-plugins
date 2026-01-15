@@ -1,5 +1,6 @@
 use crate::command::CommandExecutor;
 use crate::error::{TimerError, TimerResult};
+use crate::schedule::Schedule;
 use serde::{Deserialize, Serialize};
 
 /// Information about a systemd timer
@@ -48,7 +49,7 @@ impl<E: CommandExecutor> SystemctlClient<E> {
             .execute("systemctl", &[
                 "show",
                 name,
-                "--property=Id,LoadState,UnitFileState,NextElapseUSecRealtime,LastTriggerUSec",
+                "--property=Id,LoadState,UnitFileState,ActiveState,NextElapseUSecRealtime,LastTriggerUSec,TimersCalendar",
             ])
             .await?;
 
@@ -91,10 +92,11 @@ impl<E: CommandExecutor> SystemctlClient<E> {
         Ok(())
     }
 
-    /// Enable a timer
+    /// Enable a timer (enable for boot + start now)
     pub async fn enable_timer(&self, name: &str) -> TimerResult<()> {
         Self::validate_timer_name(name)?;
 
+        // First enable for boot
         let output = self.executor
             .execute("systemctl", &["enable", name])
             .await?;
@@ -107,13 +109,40 @@ impl<E: CommandExecutor> SystemctlClient<E> {
             });
         }
 
+        // Then start the timer now
+        let output = self.executor
+            .execute("systemctl", &["start", name])
+            .await?;
+
+        if output.exit_code != 0 {
+            return Err(TimerError::CommandFailed {
+                command: format!("systemctl start {}", name),
+                stderr: output.stderr,
+                exit_code: Some(output.exit_code),
+            });
+        }
+
         Ok(())
     }
 
-    /// Disable a timer
+    /// Disable a timer (stop now + disable for boot)
     pub async fn disable_timer(&self, name: &str) -> TimerResult<()> {
         Self::validate_timer_name(name)?;
 
+        // First stop the timer
+        let output = self.executor
+            .execute("systemctl", &["stop", name])
+            .await?;
+
+        if output.exit_code != 0 {
+            return Err(TimerError::CommandFailed {
+                command: format!("systemctl stop {}", name),
+                stderr: output.stderr,
+                exit_code: Some(output.exit_code),
+            });
+        }
+
+        // Then disable for boot
         let output = self.executor
             .execute("systemctl", &["disable", name])
             .await?;
@@ -203,8 +232,10 @@ impl<E: CommandExecutor> SystemctlClient<E> {
         let mut id = String::new();
         let mut load_state = String::new();
         let mut unit_file_state = String::new();
+        let mut active_state = String::new();
         let mut next_elapse = None;
         let mut last_trigger = None;
+        let mut calendar_entries: Vec<String> = Vec::new();
 
         for line in output.lines() {
             if let Some(value) = line.strip_prefix("Id=") {
@@ -213,6 +244,8 @@ impl<E: CommandExecutor> SystemctlClient<E> {
                 load_state = value.to_string();
             } else if let Some(value) = line.strip_prefix("UnitFileState=") {
                 unit_file_state = value.to_string();
+            } else if let Some(value) = line.strip_prefix("ActiveState=") {
+                active_state = value.to_string();
             } else if let Some(value) = line.strip_prefix("NextElapseUSecRealtime=") {
                 if value != "0" && !value.is_empty() {
                     next_elapse = Some(value.to_string());
@@ -221,6 +254,11 @@ impl<E: CommandExecutor> SystemctlClient<E> {
                 if value != "0" && !value.is_empty() {
                     last_trigger = Some(value.to_string());
                 }
+            } else if let Some(value) = line.strip_prefix("TimersCalendar=") {
+                // Format: { OnCalendar=Mon..Fri 07..21:00:00 Europe/Warsaw ; next_elapse=... }
+                if let Some(cal) = Self::extract_on_calendar(value) {
+                    calendar_entries.push(cal);
+                }
             }
         }
 
@@ -228,17 +266,58 @@ impl<E: CommandExecutor> SystemctlClient<E> {
             return Err(TimerError::NotFound(name.to_string()));
         }
 
-        let enabled = unit_file_state == "enabled";
+        // Timer is considered "enabled" if it's both enabled in unit file AND actively running
+        let enabled = unit_file_state == "enabled" && active_state == "active";
         let service = Self::timer_to_service(name).unwrap_or_else(|_| name.to_string());
+
+        // Generate human-readable schedule from calendar entries
+        let schedule_human = if calendar_entries.is_empty() {
+            "Schedule not available".to_string()
+        } else {
+            Self::humanize_schedules(&calendar_entries)
+        };
 
         Ok(TimerInfo {
             name: id,
             enabled,
-            schedule: "".to_string(), // Will be filled by schedule parser
+            schedule: schedule_human,
             next_run: next_elapse,
             last_trigger,
             service,
         })
+    }
+
+    /// Extract OnCalendar value from TimersCalendar property
+    /// Input format: { OnCalendar=Mon..Fri 07..21:00:00 Europe/Warsaw ; next_elapse=... }
+    fn extract_on_calendar(value: &str) -> Option<String> {
+        // Find OnCalendar= and extract until ; or }
+        if let Some(start) = value.find("OnCalendar=") {
+            let after_prefix = &value[start + "OnCalendar=".len()..];
+            // Find the end (either ; or })
+            let end_pos = after_prefix.find(';')
+                .or_else(|| after_prefix.find('}'))
+                .unwrap_or(after_prefix.len());
+            let calendar = after_prefix[..end_pos].trim();
+            if !calendar.is_empty() {
+                return Some(calendar.to_string());
+            }
+        }
+        None
+    }
+
+    /// Humanize multiple calendar entries
+    fn humanize_schedules(entries: &[String]) -> String {
+        entries.iter()
+            .map(|e| {
+                // Try to use Schedule parser, fall back to raw string
+                if let Ok(schedule) = Schedule::parse(Some(e), None, None) {
+                    schedule.humanize()
+                } else {
+                    e.clone()
+                }
+            })
+            .collect::<Vec<_>>()
+            .join(", ")
     }
 }
 
@@ -336,33 +415,34 @@ mod tests {
     async fn test_get_timer_info_enabled() {
         let mock = MockCommandExecutor::new();
         let output = CommandOutput {
-            stdout: "Id=test.timer\nLoadState=loaded\nUnitFileState=enabled\nNextElapseUSecRealtime=1705324800000000\nLastTriggerUSec=1705323000000000\n".to_string(),
+            stdout: "Id=test.timer\nLoadState=loaded\nUnitFileState=enabled\nActiveState=active\nNextElapseUSecRealtime=1705324800000000\nLastTriggerUSec=1705323000000000\nTimersCalendar={ OnCalendar=daily ; next_elapse=... }\n".to_string(),
             stderr: String::new(),
             exit_code: 0,
         };
         mock.expect(
-            "systemctl show test.timer --property=Id,LoadState,UnitFileState,NextElapseUSecRealtime,LastTriggerUSec",
+            "systemctl show test.timer --property=Id,LoadState,UnitFileState,ActiveState,NextElapseUSecRealtime,LastTriggerUSec,TimersCalendar",
             output
         );
 
         let client = SystemctlClient::new(mock);
         let info = client.get_timer_info("test.timer").await.unwrap();
         assert_eq!(info.name, "test.timer");
-        assert!(info.enabled);
+        assert!(info.enabled); // enabled + active = true
         assert!(info.next_run.is_some());
         assert!(info.last_trigger.is_some());
+        assert_eq!(info.schedule, "Daily at midnight");
     }
 
     #[tokio::test]
     async fn test_get_timer_info_disabled() {
         let mock = MockCommandExecutor::new();
         let output = CommandOutput {
-            stdout: "Id=test.timer\nLoadState=loaded\nUnitFileState=disabled\nNextElapseUSecRealtime=0\nLastTriggerUSec=0\n".to_string(),
+            stdout: "Id=test.timer\nLoadState=loaded\nUnitFileState=disabled\nActiveState=inactive\nNextElapseUSecRealtime=0\nLastTriggerUSec=0\n".to_string(),
             stderr: String::new(),
             exit_code: 0,
         };
         mock.expect(
-            "systemctl show test.timer --property=Id,LoadState,UnitFileState,NextElapseUSecRealtime,LastTriggerUSec",
+            "systemctl show test.timer --property=Id,LoadState,UnitFileState,ActiveState,NextElapseUSecRealtime,LastTriggerUSec,TimersCalendar",
             output
         );
 
@@ -381,7 +461,7 @@ mod tests {
             exit_code: 0,
         };
         mock.expect(
-            "systemctl show missing.timer --property=Id,LoadState,UnitFileState,NextElapseUSecRealtime,LastTriggerUSec",
+            "systemctl show missing.timer --property=Id,LoadState,UnitFileState,ActiveState,NextElapseUSecRealtime,LastTriggerUSec,TimersCalendar",
             output
         );
 
@@ -399,7 +479,7 @@ mod tests {
             stderr: String::new(),
             exit_code: 0,
         };
-        mock.expect("systemctl start test.service", output);
+        mock.expect("systemctl start --no-block test.service", output);
 
         let client = SystemctlClient::new(mock);
         let result = client.run_timer("test.timer", false).await;
@@ -414,7 +494,7 @@ mod tests {
             stderr: String::new(),
             exit_code: 0,
         };
-        mock.expect("systemctl start test.service", output);
+        mock.expect("systemctl start --no-block test.service", output);
 
         let client = SystemctlClient::new(mock);
         let result = client.run_timer("test.timer", true).await;
@@ -429,7 +509,7 @@ mod tests {
             stderr: "Service not found".to_string(),
             exit_code: 5,
         };
-        mock.expect("systemctl start test.service", output);
+        mock.expect("systemctl start --no-block test.service", output);
 
         let client = SystemctlClient::new(mock);
         let result = client.run_timer("test.timer", false).await;
@@ -439,12 +519,17 @@ mod tests {
     #[tokio::test]
     async fn test_enable_timer() {
         let mock = MockCommandExecutor::new();
-        let output = CommandOutput {
+        // Enable now requires TWO commands: enable then start
+        mock.expect("systemctl enable test.timer", CommandOutput {
             stdout: String::new(),
             stderr: String::new(),
             exit_code: 0,
-        };
-        mock.expect("systemctl enable test.timer", output);
+        });
+        mock.expect("systemctl start test.timer", CommandOutput {
+            stdout: String::new(),
+            stderr: String::new(),
+            exit_code: 0,
+        });
 
         let client = SystemctlClient::new(mock);
         let result = client.enable_timer("test.timer").await;
@@ -454,12 +539,17 @@ mod tests {
     #[tokio::test]
     async fn test_disable_timer() {
         let mock = MockCommandExecutor::new();
-        let output = CommandOutput {
+        // Disable now requires TWO commands: stop then disable
+        mock.expect("systemctl stop test.timer", CommandOutput {
             stdout: String::new(),
             stderr: String::new(),
             exit_code: 0,
-        };
-        mock.expect("systemctl disable test.timer", output);
+        });
+        mock.expect("systemctl disable test.timer", CommandOutput {
+            stdout: String::new(),
+            stderr: String::new(),
+            exit_code: 0,
+        });
 
         let client = SystemctlClient::new(mock);
         let result = client.disable_timer("test.timer").await;

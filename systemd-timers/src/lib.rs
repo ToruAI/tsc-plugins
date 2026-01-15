@@ -3,6 +3,7 @@ pub mod error;
 pub mod systemctl;
 pub mod schedule;
 pub mod journal;
+pub mod log_reader;
 pub mod handlers;
 
 pub use error::{TimerError, TimerResult};

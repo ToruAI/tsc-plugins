@@ -3,7 +3,7 @@
 
 use crate::command::CommandExecutor;
 use crate::error::{TimerError, TimerResult};
-use crate::journal::JournalClient;
+use crate::log_reader::LogReader;
 use crate::systemctl::SystemctlClient;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -99,33 +99,26 @@ pub async fn handle_get_timers<E: CommandExecutor + Clone>(
     }
 
     let client = SystemctlClient::new(executor.clone());
-    let journal = JournalClient::new(executor);
+    let log_reader = LogReader::new(executor);
     let mut results = Vec::new();
 
     for timer_name in watched_timers {
         match client.get_timer_info(&timer_name).await {
             Ok(info) => {
-                // Get last execution result from journal
-                let last_result = journal
+                // Get last execution result from log files
+                let last_result = log_reader
                     .get_execution_history(&info.service, 1)
                     .await
                     .ok()
                     .and_then(|history| history.first().cloned())
                     .map(|h| format!("{:?}", h.status).to_lowercase());
 
-                // Get schedule (will be parsed in future enhancement)
-                let schedule_human = if info.schedule.is_empty() {
-                    "Schedule not available".to_string()
-                } else {
-                    info.schedule.clone()
-                };
-
                 results.push(TimerStatusResponse {
-                    name: info.name,
+                    name: info.name.clone(),
                     service: info.service,
                     enabled: info.enabled,
-                    schedule: info.schedule,
-                    schedule_human,
+                    schedule: info.schedule.clone(),
+                    schedule_human: info.schedule, // Already humanized in systemctl.rs
                     next_run: info.next_run,
                     last_run: info.last_trigger,
                     last_result,
@@ -282,9 +275,9 @@ pub async fn handle_get_history<E: CommandExecutor>(
         .and_then(|s| s.parse::<usize>().ok())
         .unwrap_or(20);
 
-    let client = JournalClient::new(executor);
+    let log_reader = LogReader::new(executor);
 
-    match client.get_execution_history(&service_name, limit).await {
+    match log_reader.get_execution_history(&service_name, limit).await {
         Ok(history) => json_response(200, history),
         Err(TimerError::NotFound(_)) => {
             error_response(404, "Timer not found")
@@ -295,30 +288,19 @@ pub async fn handle_get_history<E: CommandExecutor>(
     }
 }
 
-/// Handle GET /timers/:name/history/:invocation_id - get execution details
+/// Handle GET /timers/:name/history/:timestamp - get execution details
 pub async fn handle_get_history_details<E: CommandExecutor + Clone>(
     executor: E,
     timer_name: &str,
-    invocation_id: &str,
+    timestamp: &str,
 ) -> TimerResult<HttpResponse> {
     // Convert timer name to service name
     let service_name = timer_name.replace(".timer", ".service");
-    let base_name = service_name.trim_end_matches(".service");
 
-    let client = JournalClient::new(executor.clone());
+    let log_reader = LogReader::new(executor);
 
-    match client.get_execution_details(&service_name, invocation_id).await {
-        Ok(mut details) => {
-            // Try to get actual log file output instead of journal messages
-            let log_file = format!("/var/log/{}.log", base_name);
-            if let Ok(output) = executor.execute("tail", &["-n", "200", &log_file]).await {
-                if output.exit_code == 0 && !output.stdout.is_empty() {
-                    // Replace journal output with actual log file content
-                    details.output = output.stdout.lines().map(|s| s.to_string()).collect();
-                }
-            }
-            json_response(200, details)
-        }
+    match log_reader.get_execution_details(&service_name, timestamp).await {
+        Ok(details) => json_response(200, details),
         Err(TimerError::NotFound(_)) => {
             error_response(404, "Execution not found")
         }
