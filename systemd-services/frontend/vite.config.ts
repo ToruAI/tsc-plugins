@@ -6,6 +6,7 @@ export default defineConfig({
   plugins: [react()],
   define: {
     'process.env.NODE_ENV': JSON.stringify('production'),
+    'process': JSON.stringify({ env: {} }),
   },
   resolve: {
     alias: {
