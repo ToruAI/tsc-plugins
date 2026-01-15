@@ -1,0 +1,5 @@
+Id=chfscraper-scrape-bcp.timer
+LoadState=loaded
+UnitFileState=enabled
+NextElapseUSecRealtime=1705324800000000
+LastTriggerUSec=1705323000000000

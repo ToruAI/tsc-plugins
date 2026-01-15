@@ -251,13 +251,21 @@ mod tests {
     use crate::command::CommandOutput;
 
     #[tokio::test]
-    async fn test_validate_timer_name() {
+    async fn test_validate_timer_name_valid() {
         assert!(SystemctlClient::<MockCommandExecutor>::validate_timer_name("foo.timer").is_ok());
         assert!(SystemctlClient::<MockCommandExecutor>::validate_timer_name("foo.service").is_ok());
+        assert!(SystemctlClient::<MockCommandExecutor>::validate_timer_name("chfscraper-scrape-bcp.timer").is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_validate_timer_name_invalid() {
         assert!(SystemctlClient::<MockCommandExecutor>::validate_timer_name("").is_err());
         assert!(SystemctlClient::<MockCommandExecutor>::validate_timer_name("foo").is_err());
         assert!(SystemctlClient::<MockCommandExecutor>::validate_timer_name("foo/bar.timer").is_err());
         assert!(SystemctlClient::<MockCommandExecutor>::validate_timer_name("foo;bar.timer").is_err());
+        assert!(SystemctlClient::<MockCommandExecutor>::validate_timer_name("foo|bar.timer").is_err());
+        assert!(SystemctlClient::<MockCommandExecutor>::validate_timer_name("foo`bar`.timer").is_err());
+        assert!(SystemctlClient::<MockCommandExecutor>::validate_timer_name("foo$bar.timer").is_err());
     }
 
     #[tokio::test]
@@ -266,11 +274,15 @@ mod tests {
             SystemctlClient::<MockCommandExecutor>::timer_to_service("foo.timer").unwrap(),
             "foo.service"
         );
+        assert_eq!(
+            SystemctlClient::<MockCommandExecutor>::timer_to_service("chfscraper-scrape-bcp.timer").unwrap(),
+            "chfscraper-scrape-bcp.service"
+        );
         assert!(SystemctlClient::<MockCommandExecutor>::timer_to_service("foo.service").is_err());
     }
 
     #[tokio::test]
-    async fn test_list_timers() {
+    async fn test_list_timers_success() {
         let mock = MockCommandExecutor::new();
         let output = CommandOutput {
             stdout: "NEXT                         LEFT       LAST                         PASSED  UNIT                              ACTIVATES\n\
@@ -287,6 +299,187 @@ mod tests {
         assert_eq!(timers.len(), 2);
         assert_eq!(timers[0].name, "chfscraper-scrape-bcp.timer");
         assert_eq!(timers[0].service, "chfscraper-scrape-bcp.service");
+        assert!(timers[0].next_run.is_some());
         assert_eq!(timers[1].name, "chfscraper-scrape-scc.timer");
+        assert!(timers[1].next_run.is_some());
+    }
+
+    #[tokio::test]
+    async fn test_list_timers_empty() {
+        let mock = MockCommandExecutor::new();
+        let output = CommandOutput {
+            stdout: "NEXT LEFT LAST PASSED UNIT ACTIVATES\n".to_string(),
+            stderr: String::new(),
+            exit_code: 0,
+        };
+        mock.expect("systemctl list-timers --all --no-pager --plain", output);
+
+        let client = SystemctlClient::new(mock);
+        let timers = client.list_timers().await.unwrap();
+        assert_eq!(timers.len(), 0);
+    }
+
+    #[tokio::test]
+    async fn test_list_timers_command_failed() {
+        let mock = MockCommandExecutor::new();
+        let output = CommandOutput {
+            stdout: String::new(),
+            stderr: "Permission denied".to_string(),
+            exit_code: 1,
+        };
+        mock.expect("systemctl list-timers --all --no-pager --plain", output);
+
+        let client = SystemctlClient::new(mock);
+        let result = client.list_timers().await;
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_get_timer_info_enabled() {
+        let mock = MockCommandExecutor::new();
+        let output = CommandOutput {
+            stdout: "Id=test.timer\nLoadState=loaded\nUnitFileState=enabled\nNextElapseUSecRealtime=1705324800000000\nLastTriggerUSec=1705323000000000\n".to_string(),
+            stderr: String::new(),
+            exit_code: 0,
+        };
+        mock.expect(
+            "systemctl show test.timer --property=Id,LoadState,UnitFileState,NextElapseUSecRealtime,LastTriggerUSec",
+            output
+        );
+
+        let client = SystemctlClient::new(mock);
+        let info = client.get_timer_info("test.timer").await.unwrap();
+        assert_eq!(info.name, "test.timer");
+        assert!(info.enabled);
+        assert!(info.next_run.is_some());
+        assert!(info.last_trigger.is_some());
+    }
+
+    #[tokio::test]
+    async fn test_get_timer_info_disabled() {
+        let mock = MockCommandExecutor::new();
+        let output = CommandOutput {
+            stdout: "Id=test.timer\nLoadState=loaded\nUnitFileState=disabled\nNextElapseUSecRealtime=0\nLastTriggerUSec=0\n".to_string(),
+            stderr: String::new(),
+            exit_code: 0,
+        };
+        mock.expect(
+            "systemctl show test.timer --property=Id,LoadState,UnitFileState,NextElapseUSecRealtime,LastTriggerUSec",
+            output
+        );
+
+        let client = SystemctlClient::new(mock);
+        let info = client.get_timer_info("test.timer").await.unwrap();
+        assert!(!info.enabled);
+        assert!(info.next_run.is_none());
+    }
+
+    #[tokio::test]
+    async fn test_get_timer_info_not_found() {
+        let mock = MockCommandExecutor::new();
+        let output = CommandOutput {
+            stdout: "LoadState=not-found\n".to_string(),
+            stderr: String::new(),
+            exit_code: 0,
+        };
+        mock.expect(
+            "systemctl show missing.timer --property=Id,LoadState,UnitFileState,NextElapseUSecRealtime,LastTriggerUSec",
+            output
+        );
+
+        let client = SystemctlClient::new(mock);
+        let result = client.get_timer_info("missing.timer").await;
+        assert!(result.is_err());
+        assert!(matches!(result.unwrap_err(), TimerError::NotFound(_)));
+    }
+
+    #[tokio::test]
+    async fn test_run_timer_production() {
+        let mock = MockCommandExecutor::new();
+        let output = CommandOutput {
+            stdout: String::new(),
+            stderr: String::new(),
+            exit_code: 0,
+        };
+        mock.expect("systemctl start test.service", output);
+
+        let client = SystemctlClient::new(mock);
+        let result = client.run_timer("test.timer", false).await;
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_run_timer_test_mode() {
+        let mock = MockCommandExecutor::new();
+        let output = CommandOutput {
+            stdout: String::new(),
+            stderr: String::new(),
+            exit_code: 0,
+        };
+        mock.expect("systemctl start test.service", output);
+
+        let client = SystemctlClient::new(mock);
+        let result = client.run_timer("test.timer", true).await;
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_run_timer_failed() {
+        let mock = MockCommandExecutor::new();
+        let output = CommandOutput {
+            stdout: String::new(),
+            stderr: "Service not found".to_string(),
+            exit_code: 5,
+        };
+        mock.expect("systemctl start test.service", output);
+
+        let client = SystemctlClient::new(mock);
+        let result = client.run_timer("test.timer", false).await;
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_enable_timer() {
+        let mock = MockCommandExecutor::new();
+        let output = CommandOutput {
+            stdout: String::new(),
+            stderr: String::new(),
+            exit_code: 0,
+        };
+        mock.expect("systemctl enable test.timer", output);
+
+        let client = SystemctlClient::new(mock);
+        let result = client.enable_timer("test.timer").await;
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_disable_timer() {
+        let mock = MockCommandExecutor::new();
+        let output = CommandOutput {
+            stdout: String::new(),
+            stderr: String::new(),
+            exit_code: 0,
+        };
+        mock.expect("systemctl disable test.timer", output);
+
+        let client = SystemctlClient::new(mock);
+        let result = client.disable_timer("test.timer").await;
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_enable_timer_permission_denied() {
+        let mock = MockCommandExecutor::new();
+        let output = CommandOutput {
+            stdout: String::new(),
+            stderr: "Permission denied".to_string(),
+            exit_code: 1,
+        };
+        mock.expect("systemctl enable test.timer", output);
+
+        let client = SystemctlClient::new(mock);
+        let result = client.enable_timer("test.timer").await;
+        assert!(result.is_err());
     }
 }

@@ -1,0 +1,5 @@
+Id=chfscraper-scrape-scc.timer
+LoadState=loaded
+UnitFileState=disabled
+NextElapseUSecRealtime=0
+LastTriggerUSec=1705323000000000

@@ -1,5 +1,6 @@
 use crate::error::TimerResult;
 use async_trait::async_trait;
+use std::sync::Arc;
 
 /// Output from a command execution
 #[derive(Debug, Clone)]
@@ -14,6 +15,14 @@ pub struct CommandOutput {
 pub trait CommandExecutor: Send + Sync {
     /// Execute a command with arguments
     async fn execute(&self, program: &str, args: &[&str]) -> TimerResult<CommandOutput>;
+}
+
+/// Blanket implementation for Arc<E> where E: CommandExecutor
+#[async_trait]
+impl<E: CommandExecutor> CommandExecutor for Arc<E> {
+    async fn execute(&self, program: &str, args: &[&str]) -> TimerResult<CommandOutput> {
+        self.as_ref().execute(program, args).await
+    }
 }
 
 /// Production command executor using std::process::Command

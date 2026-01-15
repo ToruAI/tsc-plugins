@@ -1,0 +1,4 @@
+{"_SYSTEMD_INVOCATION_ID":"abc123","__REALTIME_TIMESTAMP":"1705320000000000","MESSAGE":"Starting scrape...","_SYSTEMD_UNIT":"chfscraper-scrape-bcp.service"}
+{"_SYSTEMD_INVOCATION_ID":"abc123","__REALTIME_TIMESTAMP":"1705320005000000","MESSAGE":"Proxy enabled (CH)","_SYSTEMD_UNIT":"chfscraper-scrape-bcp.service"}
+{"_SYSTEMD_INVOCATION_ID":"abc123","__REALTIME_TIMESTAMP":"1705320045000000","MESSAGE":"Scrape complete","_SYSTEMD_UNIT":"chfscraper-scrape-bcp.service"}
+{"_SYSTEMD_INVOCATION_ID":"abc123","__REALTIME_TIMESTAMP":"1705320045000000","EXIT_STATUS":"0","_SYSTEMD_UNIT":"chfscraper-scrape-bcp.service"}

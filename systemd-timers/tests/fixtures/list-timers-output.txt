@@ -1,0 +1,4 @@
+NEXT                         LEFT       LAST                         PASSED  UNIT                              ACTIVATES
+Wed 2026-01-15 14:00:00 CET  45min left n/a                          n/a     chfscraper-scrape-bcp.timer       chfscraper-scrape-bcp.service
+Wed 2026-01-15 13:30:00 CET  15min left Wed 2026-01-15 12:30:00 CET  45min   chfscraper-scrape-scc.timer       chfscraper-scrape-scc.service
+Wed 2026-01-15 13:45:00 CET  30min left Wed 2026-01-15 13:00:00 CET  15min   chfscraper-scrape-rest.timer      chfscraper-scrape-rest.service

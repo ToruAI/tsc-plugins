@@ -1,0 +1,3 @@
+{"_SYSTEMD_INVOCATION_ID":"def456","__REALTIME_TIMESTAMP":"1705323000000000","MESSAGE":"Starting scrape...","_SYSTEMD_UNIT":"chfscraper-scrape-scc.service"}
+{"_SYSTEMD_INVOCATION_ID":"def456","__REALTIME_TIMESTAMP":"1705323120000000","MESSAGE":"Error: timeout","_SYSTEMD_UNIT":"chfscraper-scrape-scc.service"}
+{"_SYSTEMD_INVOCATION_ID":"def456","__REALTIME_TIMESTAMP":"1705323120000000","EXIT_STATUS":"1","_SYSTEMD_UNIT":"chfscraper-scrape-scc.service"}

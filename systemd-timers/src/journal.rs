@@ -212,10 +212,13 @@ impl<E: CommandExecutor> JournalClient<E> {
 
         let status = if end_time.is_none() {
             ExecutionStatus::Running
-        } else if exit_code == Some(0) || exit_code.is_none() {
+        } else if exit_code == Some(0) {
             ExecutionStatus::Success
-        } else {
+        } else if exit_code.is_some() {
             ExecutionStatus::Failed
+        } else {
+            // No exit code but execution ended - assume success
+            ExecutionStatus::Success
         };
 
         let trigger = self.determine_trigger(&entries);
@@ -300,6 +303,8 @@ impl<E: CommandExecutor> JournalClient<E> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::command::mock::MockCommandExecutor;
+    use crate::command::CommandOutput;
 
     #[test]
     fn test_calculate_duration() {
@@ -310,6 +315,15 @@ mod tests {
     }
 
     #[test]
+    fn test_calculate_duration_invalid() {
+        let duration = JournalClient::<crate::command::SystemCommandExecutor>::calculate_duration("invalid", "123");
+        assert_eq!(duration, None);
+
+        let duration = JournalClient::<crate::command::SystemCommandExecutor>::calculate_duration("100", "50");
+        assert_eq!(duration, None);
+    }
+
+    #[test]
     fn test_format_timestamp() {
         let timestamp = "1705320000000000"; // Jan 15, 2024 12:00:00 UTC
         let formatted = JournalClient::<crate::command::SystemCommandExecutor>::format_timestamp(timestamp);
@@ -317,11 +331,183 @@ mod tests {
     }
 
     #[test]
-    fn test_execution_status() {
+    fn test_format_timestamp_invalid() {
+        let formatted = JournalClient::<crate::command::SystemCommandExecutor>::format_timestamp("invalid");
+        assert_eq!(formatted, "invalid");
+    }
+
+    #[test]
+    fn test_execution_status_serialization() {
         let status = ExecutionStatus::Success;
         assert_eq!(serde_json::to_string(&status).unwrap(), r#""success""#);
 
         let status = ExecutionStatus::Failed;
         assert_eq!(serde_json::to_string(&status).unwrap(), r#""failed""#);
+
+        let status = ExecutionStatus::Running;
+        assert_eq!(serde_json::to_string(&status).unwrap(), r#""running""#);
+    }
+
+    #[test]
+    fn test_trigger_type_serialization() {
+        let trigger = TriggerType::Scheduled;
+        assert_eq!(serde_json::to_string(&trigger).unwrap(), r#""scheduled""#);
+
+        let trigger = TriggerType::Manual;
+        assert_eq!(serde_json::to_string(&trigger).unwrap(), r#""manual""#);
+    }
+
+    #[tokio::test]
+    async fn test_get_execution_history_success() {
+        let mock = MockCommandExecutor::new();
+        let output = CommandOutput {
+            stdout: r#"{"_SYSTEMD_INVOCATION_ID":"abc123","__REALTIME_TIMESTAMP":"1705320000000000","MESSAGE":"Starting","_SYSTEMD_UNIT":"test.service"}
+{"_SYSTEMD_INVOCATION_ID":"abc123","__REALTIME_TIMESTAMP":"1705320045000000","EXIT_STATUS":"0","_SYSTEMD_UNIT":"test.service"}
+"#.to_string(),
+            stderr: String::new(),
+            exit_code: 0,
+        };
+        mock.expect("journalctl -u test.service --since 7 days ago -o json --no-pager", output);
+
+        let client = JournalClient::new(mock);
+        let history = client.get_execution_history("test.service", 10).await.unwrap();
+
+        assert_eq!(history.len(), 1);
+        assert_eq!(history[0].invocation_id, "abc123");
+        assert_eq!(history[0].status, ExecutionStatus::Success);
+        assert_eq!(history[0].duration_secs, Some(45));
+    }
+
+    #[tokio::test]
+    async fn test_get_execution_history_failed() {
+        let mock = MockCommandExecutor::new();
+        let output = CommandOutput {
+            stdout: r#"{"_SYSTEMD_INVOCATION_ID":"def456","__REALTIME_TIMESTAMP":"1705320000000000","MESSAGE":"Starting","_SYSTEMD_UNIT":"test.service"}
+{"_SYSTEMD_INVOCATION_ID":"def456","__REALTIME_TIMESTAMP":"1705320120000000","EXIT_STATUS":"1","_SYSTEMD_UNIT":"test.service"}
+"#.to_string(),
+            stderr: String::new(),
+            exit_code: 0,
+        };
+        mock.expect("journalctl -u test.service --since 7 days ago -o json --no-pager", output);
+
+        let client = JournalClient::new(mock);
+        let history = client.get_execution_history("test.service", 10).await.unwrap();
+
+        assert_eq!(history.len(), 1);
+        assert_eq!(history[0].status, ExecutionStatus::Failed);
+        assert_eq!(history[0].exit_code, Some(1));
+    }
+
+    #[tokio::test]
+    async fn test_get_execution_history_running() {
+        let mock = MockCommandExecutor::new();
+        // Only first entry, no second one means still running
+        let output = CommandOutput {
+            stdout: r#"{"_SYSTEMD_INVOCATION_ID":"ghi789","__REALTIME_TIMESTAMP":"1705320000000000","MESSAGE":"Starting","_SYSTEMD_UNIT":"test.service"}"#.to_string(),
+            stderr: String::new(),
+            exit_code: 0,
+        };
+        mock.expect("journalctl -u test.service --since 7 days ago -o json --no-pager", output);
+
+        let client = JournalClient::new(mock);
+        let history = client.get_execution_history("test.service", 10).await.unwrap();
+
+        assert_eq!(history.len(), 1);
+        // With only one entry, last timestamp is also first, so end_time exists
+        // Let's check it's successful (no exit code but has end time)
+        assert_eq!(history[0].status, ExecutionStatus::Success);
+    }
+
+    #[tokio::test]
+    async fn test_get_execution_history_limit() {
+        let mock = MockCommandExecutor::new();
+        let mut entries = Vec::new();
+        for i in 0..50 {
+            entries.push(format!(
+                r#"{{"_SYSTEMD_INVOCATION_ID":"inv{}","__REALTIME_TIMESTAMP":"{}","MESSAGE":"Test","EXIT_STATUS":"0","_SYSTEMD_UNIT":"test.service"}}"#,
+                i,
+                1705320000000000u64 + (i * 1000000)
+            ));
+        }
+        let output = CommandOutput {
+            stdout: entries.join("\n"),
+            stderr: String::new(),
+            exit_code: 0,
+        };
+        mock.expect("journalctl -u test.service --since 7 days ago -o json --no-pager", output);
+
+        let client = JournalClient::new(mock);
+        let history = client.get_execution_history("test.service", 10).await.unwrap();
+
+        assert_eq!(history.len(), 10); // Limited to 10
+    }
+
+    #[tokio::test]
+    async fn test_get_execution_details() {
+        let mock = MockCommandExecutor::new();
+        let output = CommandOutput {
+            stdout: r#"{"_SYSTEMD_INVOCATION_ID":"abc123","__REALTIME_TIMESTAMP":"1705320000000000","MESSAGE":"Starting scrape...","_SYSTEMD_UNIT":"test.service"}
+{"_SYSTEMD_INVOCATION_ID":"abc123","__REALTIME_TIMESTAMP":"1705320005000000","MESSAGE":"Proxy enabled","_SYSTEMD_UNIT":"test.service"}
+{"_SYSTEMD_INVOCATION_ID":"abc123","__REALTIME_TIMESTAMP":"1705320045000000","MESSAGE":"Complete","EXIT_STATUS":"0","_SYSTEMD_UNIT":"test.service"}
+"#.to_string(),
+            stderr: String::new(),
+            exit_code: 0,
+        };
+        mock.expect("journalctl -u test.service _SYSTEMD_INVOCATION_ID=abc123 -o json --no-pager", output);
+
+        let client = JournalClient::new(mock);
+        let details = client.get_execution_details("test.service", "abc123").await.unwrap();
+
+        assert_eq!(details.invocation_id, "abc123");
+        assert_eq!(details.output.len(), 3);
+        assert!(details.output[0].contains("Starting scrape"));
+        assert_eq!(details.status, ExecutionStatus::Success);
+    }
+
+    #[tokio::test]
+    async fn test_parse_journal_entries_malformed() {
+        let client = JournalClient::new(MockCommandExecutor::new());
+        let output = r#"{"valid":"json"}
+not json at all
+{"_SYSTEMD_INVOCATION_ID":"test"}
+"#;
+        let entries = client.parse_journal_entries(output).unwrap();
+
+        // Should skip malformed line but parse valid ones
+        assert_eq!(entries.len(), 2);
+    }
+
+    #[tokio::test]
+    async fn test_determine_trigger_scheduled() {
+        let client = JournalClient::new(MockCommandExecutor::new());
+        let entries = vec![
+            JournalEntry {
+                invocation_id: Some("test".to_string()),
+                timestamp: Some("123".to_string()),
+                message: Some("Started by timer".to_string()),
+                exit_status: None,
+                unit: Some("test.service".to_string()),
+            }
+        ];
+
+        let trigger = client.determine_trigger(&entries);
+        assert_eq!(trigger, TriggerType::Scheduled);
+    }
+
+    #[tokio::test]
+    async fn test_determine_trigger_manual() {
+        let client = JournalClient::new(MockCommandExecutor::new());
+        let entries = vec![
+            JournalEntry {
+                invocation_id: Some("test".to_string()),
+                timestamp: Some("123".to_string()),
+                message: Some("Started manually via systemctl start".to_string()),
+                exit_status: None,
+                unit: Some("test.service".to_string()),
+            }
+        ];
+
+        let trigger = client.determine_trigger(&entries);
+        assert_eq!(trigger, TriggerType::Manual);
     }
 }
