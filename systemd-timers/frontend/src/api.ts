@@ -1,6 +1,6 @@
 import type { TimerStatus, AvailableTimer, ExecutionHistory, ExecutionDetails, Settings } from './types';
 
-const BASE_URL = '/api/plugins/systemd-timers';
+const BASE_URL = '/api/plugins/route/systemd-timers';
 
 async function fetchAPI<T>(path: string, options?: RequestInit): Promise<T> {
   const response = await fetch(`${BASE_URL}${path}`, {

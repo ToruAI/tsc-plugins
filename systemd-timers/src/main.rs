@@ -366,10 +366,13 @@ async fn main() {
                             }
                         }
                         Err(e) => {
-                            eprintln!(
-                                "[SystemdTimersPlugin] Failed to read message: {}",
-                                e
-                            );
+                            // EOF is expected when TSC closes connection after sending a message
+                            if !matches!(&e, PluginError::Io(io_err) if io_err.kind() == std::io::ErrorKind::UnexpectedEof) {
+                                eprintln!(
+                                    "[SystemdTimersPlugin] Failed to read message: {}",
+                                    e
+                                );
+                            }
                             break;
                         }
                     }

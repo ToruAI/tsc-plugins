@@ -1,39 +1,31 @@
-import { StrictMode } from 'react'
-import { createRoot } from 'react-dom/client'
-import type { Root } from 'react-dom/client'
-import './index.css'
-import App from './App.tsx'
+import { createRoot } from "react-dom/client"
+import type { Root } from "react-dom/client"
+import App from "./App"
+import type { PluginApi } from "./types"
 
-const PLUGIN_ID = 'systemd-timers'
-
+const PLUGIN_ID = "systemd-timers"
 let root: Root | null = null
 
-export function mount(containerId: string) {
-  const container = document.getElementById(containerId)
-  if (!container) {
-    console.error(`[${PLUGIN_ID}] Container not found: ${containerId}`)
-    return
-  }
-
-  root = createRoot(container)
-  root.render(
-    <StrictMode>
-      <App />
-    </StrictMode>
-  )
-
-  console.log(`[${PLUGIN_ID}] Plugin mounted`)
-}
-
-export function unmount() {
-  if (root) {
-    root.unmount()
-    root = null
-    console.log(`[${PLUGIN_ID}] Plugin unmounted`)
+// Register with TSC
+declare global {
+  interface Window {
+    ToruPlugins: Record<string, {
+      mount: (container: HTMLElement, api: PluginApi) => void
+      unmount: (container: HTMLElement) => void
+    }>
   }
 }
 
-// Expose to global namespace for IIFE format
-if (typeof window !== 'undefined') {
-  (window as any).SystemdTimersPlugin = { mount, unmount }
+window.ToruPlugins = window.ToruPlugins || {}
+window.ToruPlugins[PLUGIN_ID] = {
+  mount(container: HTMLElement, api: PluginApi) {
+    root = createRoot(container)
+    root.render(<App api={api} />)
+  },
+  unmount(_container: HTMLElement) {
+    if (root) {
+      root.unmount()
+      root = null
+    }
+  },
 }

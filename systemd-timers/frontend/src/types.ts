@@ -1,3 +1,11 @@
+export interface PluginApi {
+  fetch: (path: string, options?: RequestInit) => Promise<Response>
+  kv: {
+    get: (key: string) => Promise<string | null>
+    set: (key: string, value: string) => Promise<void>
+  }
+}
+
 export interface TimerStatus {
   name: string;
   service: string;

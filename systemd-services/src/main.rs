@@ -314,10 +314,13 @@ async fn main() {
                             }
                         }
                         Err(e) => {
-                            eprintln!(
-                                "[SystemdServicesPlugin] Failed to read message: {}",
-                                e
-                            );
+                            // EOF is expected when TSC closes connection after sending a message
+                            if !matches!(&e, PluginError::Io(io_err) if io_err.kind() == std::io::ErrorKind::UnexpectedEof) {
+                                eprintln!(
+                                    "[SystemdServicesPlugin] Failed to read message: {}",
+                                    e
+                                );
+                            }
                             break;
                         }
                     }

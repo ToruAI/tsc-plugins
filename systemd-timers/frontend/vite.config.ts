@@ -2,9 +2,11 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import path from 'path'
 
-// https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
+  define: {
+    'process.env.NODE_ENV': JSON.stringify('production'),
+  },
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
@@ -13,18 +15,15 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     lib: {
-      entry: './src/main.tsx',
+      entry: path.resolve(__dirname, 'src/main.tsx'),
       name: 'SystemdTimersPlugin',
       formats: ['iife'],
       fileName: () => 'bundle.js',
     },
     rollupOptions: {
-      external: ['react', 'react-dom'],
+      external: [],
       output: {
-        globals: {
-          react: 'React',
-          'react-dom': 'ReactDOM',
-        },
+        inlineDynamicImports: true,
       },
     },
   },

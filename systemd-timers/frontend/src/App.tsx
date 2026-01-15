@@ -2,8 +2,15 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { TimersTab } from './components/TimersTab';
 import { HistoryTab } from './components/HistoryTab';
 import { SettingsTab } from './components/SettingsTab';
+import type { PluginApi } from './types';
 
-function App() {
+interface AppProps {
+  api: PluginApi;
+}
+
+function App({ api }: AppProps) {
+  // TODO: Pass api to child components or use context
+  void api;
   return (
     <div className="p-6 w-full max-w-6xl mx-auto">
       <div className="flex items-center justify-between mb-6">
