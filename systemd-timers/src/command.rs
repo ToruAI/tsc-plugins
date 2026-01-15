@@ -32,7 +32,6 @@ pub struct SystemCommandExecutor;
 impl CommandExecutor for SystemCommandExecutor {
     async fn execute(&self, program: &str, args: &[&str]) -> TimerResult<CommandOutput> {
         use tokio::process::Command;
-        use crate::error::TimerError;
 
         let output = Command::new(program)
             .args(args)

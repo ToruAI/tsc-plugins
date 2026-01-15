@@ -1,5 +1,7 @@
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { TimersTab } from './components/TimersTab';
+import { HistoryTab } from './components/HistoryTab';
+import { SettingsTab } from './components/SettingsTab';
 
 function App() {
   return (
@@ -19,40 +21,19 @@ function App() {
         </TabsList>
 
         <TabsContent value="timers" className="mt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Active Timers</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground">No timers configured yet.</p>
-            </CardContent>
-          </Card>
+          <TimersTab />
         </TabsContent>
 
         <TabsContent value="history" className="mt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Execution History</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground">No execution history available.</p>
-            </CardContent>
-          </Card>
+          <HistoryTab />
         </TabsContent>
 
         <TabsContent value="settings" className="mt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Settings</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground">Configure which timers to watch.</p>
-            </CardContent>
-          </Card>
+          <SettingsTab />
         </TabsContent>
       </Tabs>
     </div>
-  )
+  );
 }
 
-export default App
+export default App;

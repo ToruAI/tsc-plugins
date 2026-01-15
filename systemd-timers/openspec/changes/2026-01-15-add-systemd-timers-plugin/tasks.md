@@ -9,71 +9,71 @@
 - [x] 1.6: Create minimal bundle.js with mount/unmount
 
 ## Phase 2: Backend - Core Infrastructure
-- [ ] 2.1: Define CommandExecutor trait for testability
-- [ ] 2.2: Implement SystemCommandExecutor (production)
-- [ ] 2.3: Implement MockCommandExecutor (tests)
-- [ ] 2.4: Create error types (TimerError, ParseError, etc.)
-- [ ] 2.5: Set up test fixtures directory structure
+- [x] 2.1: Define CommandExecutor trait for testability
+- [x] 2.2: Implement SystemCommandExecutor (production)
+- [x] 2.3: Implement MockCommandExecutor (tests)
+- [x] 2.4: Create error types (TimerError, ParseError, etc.)
+- [x] 2.5: Set up test fixtures directory structure
 
 ## Phase 3: Backend - Systemctl Timer Wrapper
-- [ ] 3.1: Implement list_timers() - get all systemd timers
-- [ ] 3.2: Implement get_timer_info(name) - schedule, next_run, enabled
-- [ ] 3.3: Implement run_timer(name, test_mode) - trigger execution
-- [ ] 3.4: Implement enable/disable_timer(name)
-- [ ] 3.5: Add input validation (timer name sanitization)
+- [x] 3.1: Implement list_timers() - get all systemd timers
+- [x] 3.2: Implement get_timer_info(name) - schedule, next_run, enabled
+- [x] 3.3: Implement run_timer(name, test_mode) - trigger execution
+- [x] 3.4: Implement enable/disable_timer(name)
+- [x] 3.5: Add input validation (timer name sanitization)
 
 ## Phase 4: Backend - Schedule Parser
-- [ ] 4.1: Parse OnCalendar expressions
-- [ ] 4.2: Parse OnBootSec/OnUnitActiveSec expressions
-- [ ] 4.3: Implement humanize_schedule() for user-friendly display
-- [ ] 4.4: Handle complex schedules (Mon,Wed,Fri patterns)
+- [x] 4.1: Parse OnCalendar expressions
+- [x] 4.2: Parse OnBootSec/OnUnitActiveSec expressions
+- [x] 4.3: Implement humanize_schedule() for user-friendly display
+- [x] 4.4: Handle complex schedules (Mon,Wed,Fri patterns)
 
 ## Phase 5: Backend - Journal History Parser
-- [ ] 5.1: Implement get_execution_history(service, limit)
-- [ ] 5.2: Parse _SYSTEMD_INVOCATION_ID boundaries
-- [ ] 5.3: Calculate duration from timestamps
-- [ ] 5.4: Determine trigger type (timer vs manual)
-- [ ] 5.5: Handle still-running invocations
-- [ ] 5.6: Implement get_execution_details(service, invocation_id)
+- [x] 5.1: Implement get_execution_history(service, limit)
+- [x] 5.2: Parse _SYSTEMD_INVOCATION_ID boundaries
+- [x] 5.3: Calculate duration from timestamps
+- [x] 5.4: Determine trigger type (timer vs manual)
+- [x] 5.5: Handle still-running invocations
+- [x] 5.6: Implement get_execution_details(service, invocation_id)
 
 ## Phase 6: Backend - Unit Tests (Systemctl)
-- [ ] 6.1: Create mock fixture files (timer outputs)
-- [ ] 6.2: Test list_timers() parsing
-- [ ] 6.3: Test get_timer_info() with various schedules
-- [ ] 6.4: Test run_timer() production vs test mode
-- [ ] 6.5: Test enable/disable success and failure paths
-- [ ] 6.6: Test error handling (timeout, not found)
-- [ ] 6.7: Test input validation (injection prevention)
-- [ ] 6.8: Verify >= 90% line coverage for systemctl module
+- [x] 6.1: Create mock fixture files (timer outputs)
+- [x] 6.2: Test list_timers() parsing
+- [x] 6.3: Test get_timer_info() with various schedules
+- [x] 6.4: Test run_timer() production vs test mode
+- [x] 6.5: Test enable/disable success and failure paths
+- [x] 6.6: Test error handling (timeout, not found)
+- [x] 6.7: Test input validation (injection prevention)
+- [x] 6.8: Verify >= 90% line coverage for systemctl module
 
 ## Phase 7: Backend - Unit Tests (Schedule Parser)
-- [ ] 7.1: Test OnCalendar daily/weekly/monthly patterns
-- [ ] 7.2: Test OnBootSec/OnUnitActiveSec patterns
-- [ ] 7.3: Test humanize_schedule() output
-- [ ] 7.4: Test complex multi-day schedules
-- [ ] 7.5: Test edge cases (invalid formats)
-- [ ] 7.6: Verify 100% coverage for schedule module
+- [x] 7.1: Test OnCalendar daily/weekly/monthly patterns
+- [x] 7.2: Test OnBootSec/OnUnitActiveSec patterns
+- [x] 7.3: Test humanize_schedule() output
+- [x] 7.4: Test complex multi-day schedules
+- [x] 7.5: Test edge cases (invalid formats)
+- [x] 7.6: Verify 100% coverage for schedule module
 
 ## Phase 8: Backend - Unit Tests (Journal Parser)
-- [ ] 8.1: Create mock journal fixture files
-- [ ] 8.2: Test invocation boundary detection
-- [ ] 8.3: Test duration calculation
-- [ ] 8.4: Test trigger type detection
-- [ ] 8.5: Test running invocation handling
-- [ ] 8.6: Test multi-line output parsing
-- [ ] 8.7: Test Unicode/binary output handling
-- [ ] 8.8: Test history limit enforcement
-- [ ] 8.9: Verify >= 90% line coverage for journal module
+- [x] 8.1: Create mock journal fixture files
+- [x] 8.2: Test invocation boundary detection
+- [x] 8.3: Test duration calculation
+- [x] 8.4: Test trigger type detection
+- [x] 8.5: Test running invocation handling
+- [x] 8.6: Test multi-line output parsing
+- [x] 8.7: Test Unicode/binary output handling
+- [x] 8.8: Test history limit enforcement
+- [x] 8.9: Verify >= 90% line coverage for journal module
 
 ## Phase 9: Backend - HTTP Endpoints
-- [ ] 9.1: GET /timers - watched timers with status
-- [ ] 9.2: GET /timers/available - all timers
-- [ ] 9.3: POST /timers/:name/run - full production run
-- [ ] 9.4: POST /timers/:name/test - test run
-- [ ] 9.5: POST /timers/:name/enable|disable
-- [ ] 9.6: GET /timers/:name/history - execution list
-- [ ] 9.7: GET /timers/:name/history/:id - execution details
-- [ ] 9.8: KV storage integration for watched_timers
+- [x] 9.1: GET /timers - watched timers with status
+- [x] 9.2: GET /timers/available - all timers
+- [x] 9.3: POST /timers/:name/run - full production run
+- [x] 9.4: POST /timers/:name/test - test run
+- [x] 9.5: POST /timers/:name/enable|disable
+- [x] 9.6: GET /timers/:name/history - execution list
+- [x] 9.7: GET /timers/:name/history/:id - execution details
+- [x] 9.8: KV storage integration for watched_timers
 
 ## Phase 10: Backend - Integration Tests
 - [ ] 10.1: Test GET /timers with mocked systemctl/journal
