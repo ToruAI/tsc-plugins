@@ -24,6 +24,7 @@ export interface AvailableTimer {
 
 export interface ExecutionHistory {
   invocation_id: string;
+  timer_name: string;
   start_time: string;
   end_time: string | null;
   duration_secs: number | null;

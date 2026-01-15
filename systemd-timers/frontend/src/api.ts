@@ -40,6 +40,10 @@ export async function disableTimer(name: string): Promise<void> {
   await fetchAPI(`/timers/${name}/disable`, { method: 'POST' });
 }
 
+export async function getAllHistory(limit: number = 50): Promise<ExecutionHistory[]> {
+  return fetchAPI<ExecutionHistory[]>(`/history?limit=${limit}`);
+}
+
 export async function getHistory(timerName: string, limit: number = 20): Promise<ExecutionHistory[]> {
   return fetchAPI<ExecutionHistory[]>(`/timers/${timerName}/history?limit=${limit}`);
 }

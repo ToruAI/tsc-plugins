@@ -94,6 +94,7 @@ function generateHistory(timerName: string): ExecutionHistory[] {
 
     history.push({
       invocation_id: `inv-${baseService}-${i}-${Date.now()}`,
+      timer_name: timerName,
       start_time: startTime.toISOString(),
       end_time: isRunning ? null : new Date(startTime.getTime() + durationSecs * 1000).toISOString(),
       duration_secs: isRunning ? null : durationSecs,
@@ -113,6 +114,13 @@ export const mockHistoryByTimer: Record<string, ExecutionHistory[]> = {
   'chfscraper-scrape-axa.timer': generateHistory('chfscraper-scrape-axa.timer'),
   'chfscraper-scrape-rest.timer': generateHistory('chfscraper-scrape-rest.timer'),
 };
+
+// Get all history combined and sorted by start_time (most recent first)
+export function getAllMockHistory(limit: number = 50): ExecutionHistory[] {
+  const allHistory = Object.values(mockHistoryByTimer).flat();
+  allHistory.sort((a, b) => new Date(b.start_time).getTime() - new Date(a.start_time).getTime());
+  return allHistory.slice(0, limit);
+}
 
 // Generate detailed output for executions
 export function getMockExecutionDetails(timerName: string, invocationId: string): ExecutionDetails | null {

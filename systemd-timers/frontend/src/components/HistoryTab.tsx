@@ -1,85 +1,57 @@
-import { useState, useEffect } from 'react';
-import { getHistory, getHistoryDetails } from '../api';
+import { useState, useEffect, useCallback } from 'react';
+import { toast } from 'sonner';
+import { getAllHistory, getHistory, getHistoryDetails } from '../api';
 import type { ExecutionHistory, ExecutionDetails } from '../types';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Card } from '@/components/ui/card';
-import { RefreshCw, CheckCircle, XCircle, Clock, Zap, Calendar } from 'lucide-react';
+import { RefreshCw, Zap, Calendar } from 'lucide-react';
+import { StatusIcon } from './StatusIcon';
+import { formatDuration, formatTime, displayTimerName } from '@/lib/formatters';
 import { useTimers } from '../hooks/useTimers';
+
+const ALL_TIMERS = '__all__';
 
 export function HistoryTab() {
   const { timers } = useTimers();
-  const [selectedTimer, setSelectedTimer] = useState<string>('');
+  const [selectedTimer, setSelectedTimer] = useState<string>(ALL_TIMERS);
   const [history, setHistory] = useState<ExecutionHistory[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedExecution, setSelectedExecution] = useState<ExecutionDetails | null>(null);
+  const [loadingDetails, setLoadingDetails] = useState(false);
 
-  const fetchHistory = async (timerName: string) => {
+  const fetchHistory = useCallback(async (timerFilter: string) => {
     try {
       setLoading(true);
-      const data = await getHistory(timerName, 20);
+      const data = timerFilter === ALL_TIMERS
+        ? await getAllHistory(50)
+        : await getHistory(timerFilter, 30);
       setHistory(data);
     } catch (err) {
       console.error('Failed to fetch history:', err);
+      toast.error('Failed to load history');
       setHistory([]);
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
-    if (selectedTimer) {
-      fetchHistory(selectedTimer);
-    }
-  }, [selectedTimer]);
-
-  useEffect(() => {
-    if (timers.length > 0 && !selectedTimer) {
-      setSelectedTimer(timers[0].name);
-    }
-  }, [timers, selectedTimer]);
+    fetchHistory(selectedTimer);
+  }, [selectedTimer, fetchHistory]);
 
   const handleRowClick = async (execution: ExecutionHistory) => {
     try {
-      const details = await getHistoryDetails(selectedTimer, execution.invocation_id);
+      setLoadingDetails(true);
+      const details = await getHistoryDetails(execution.timer_name, execution.invocation_id);
       setSelectedExecution(details);
     } catch (err) {
       console.error('Failed to fetch execution details:', err);
-      alert(`Failed to fetch details: ${err instanceof Error ? err.message : 'Unknown error'}`);
-    }
-  };
-
-  const formatDuration = (secs: number | null) => {
-    if (secs === null) return '—';
-    if (secs < 60) return `${secs}s`;
-    const mins = Math.floor(secs / 60);
-    const remainingSecs = secs % 60;
-    return `${mins}m ${remainingSecs}s`;
-  };
-
-  const formatTime = (time: string) => {
-    const date = new Date(time);
-    const now = new Date();
-    const isToday = date.toDateString() === now.toDateString();
-    
-    if (isToday) {
-      return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    }
-    return date.toLocaleDateString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
-  };
-
-  const StatusIcon = ({ status }: { status: string }) => {
-    switch (status) {
-      case 'success':
-        return <CheckCircle className="h-4 w-4 text-emerald-500" />;
-      case 'failed':
-        return <XCircle className="h-4 w-4 text-red-500" />;
-      case 'running':
-        return <Clock className="h-4 w-4 text-amber-500 animate-pulse" />;
-      default:
-        return <Clock className="h-4 w-4 text-muted-foreground" />;
+      toast.error('Failed to load execution details');
+    } finally {
+      setLoadingDetails(false);
     }
   };
 
@@ -101,9 +73,10 @@ export function HistoryTab() {
             <SelectValue placeholder="Select timer" />
           </SelectTrigger>
           <SelectContent>
+            <SelectItem value={ALL_TIMERS}>All timers</SelectItem>
             {timers.map((timer) => (
               <SelectItem key={timer.name} value={timer.name}>
-                {timer.name.replace('.timer', '')}
+                {displayTimerName(timer.name)}
               </SelectItem>
             ))}
           </SelectContent>
@@ -112,8 +85,8 @@ export function HistoryTab() {
         <Button
           size="icon"
           variant="ghost"
-          onClick={() => selectedTimer && fetchHistory(selectedTimer)}
-          disabled={loading || !selectedTimer}
+          onClick={() => fetchHistory(selectedTimer)}
+          disabled={loading}
           className="h-9 w-9 shrink-0"
         >
           <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
@@ -139,10 +112,20 @@ export function HistoryTab() {
             >
               <div className="flex items-center gap-3">
                 <StatusIcon status={execution.status} />
-                
+
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 text-sm">
-                    <span className="font-medium">{formatTime(execution.start_time)}</span>
+                    {selectedTimer === ALL_TIMERS && (
+                      <>
+                        <span className="font-medium truncate">
+                          {displayTimerName(execution.timer_name)}
+                        </span>
+                        <span className="text-muted-foreground">•</span>
+                      </>
+                    )}
+                    <span className={selectedTimer === ALL_TIMERS ? 'text-muted-foreground' : 'font-medium'}>
+                      {formatTime(execution.start_time)}
+                    </span>
                     <span className="text-muted-foreground">•</span>
                     <span className="text-muted-foreground">{formatDuration(execution.duration_secs)}</span>
                   </div>
@@ -165,11 +148,15 @@ export function HistoryTab() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               {selectedExecution && <StatusIcon status={selectedExecution.status} />}
-              Execution Details
+              {selectedExecution && displayTimerName(selectedExecution.timer_name)}
             </DialogTitle>
           </DialogHeader>
 
-          {selectedExecution && (
+          {loadingDetails ? (
+            <div className="flex items-center justify-center py-12">
+              <RefreshCw className="h-5 w-5 animate-spin text-muted-foreground" />
+            </div>
+          ) : selectedExecution && (
             <div className="flex-1 min-h-0 space-y-4">
               {/* Meta info */}
               <div className="grid grid-cols-2 gap-3 text-sm">

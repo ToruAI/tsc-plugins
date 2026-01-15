@@ -1,56 +1,49 @@
+import { useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { getStatusBarColor } from './StatusIcon';
+import { formatRelativeTime, displayTimerName } from '@/lib/formatters';
 import type { TimerStatus } from '../types';
-import { Play, TestTube, Power } from 'lucide-react';
+import { Play, TestTube, Power, Loader2 } from 'lucide-react';
 
 interface TimerCardProps {
   timer: TimerStatus;
-  onRun: (name: string) => void;
-  onTest: (name: string) => void;
-  onToggle: (name: string, enabled: boolean) => void;
+  onRun: (name: string) => Promise<void>;
+  onTest: (name: string) => Promise<void>;
+  onToggle: (name: string, enabled: boolean) => Promise<void>;
 }
 
 export function TimerCard({ timer, onRun, onTest, onToggle }: TimerCardProps) {
-  const statusConfig = {
-    success: { color: 'bg-emerald-500', label: 'OK' },
-    failed: { color: 'bg-red-500', label: 'Failed' },
-    running: { color: 'bg-amber-500 animate-pulse', label: 'Running' },
-  };
+  const [loadingAction, setLoadingAction] = useState<'run' | 'test' | 'toggle' | null>(null);
 
-  const status = timer.last_result ? statusConfig[timer.last_result] : null;
-
-  const formatRelativeTime = (time: string | null) => {
-    if (!time) return null;
-    const date = new Date(time);
-    const now = new Date();
-    const diff = date.getTime() - now.getTime();
-    const absDiff = Math.abs(diff);
-    
-    const mins = Math.floor(absDiff / 60000);
-    const hours = Math.floor(absDiff / 3600000);
-    const days = Math.floor(absDiff / 86400000);
-
-    if (days > 0) return `${days}d`;
-    if (hours > 0) return `${hours}h`;
-    if (mins > 0) return `${mins}m`;
-    return '<1m';
+  const handleAction = async (
+    action: 'run' | 'test' | 'toggle',
+    fn: () => Promise<void>
+  ) => {
+    setLoadingAction(action);
+    try {
+      await fn();
+    } finally {
+      setLoadingAction(null);
+    }
   };
 
   const nextIn = formatRelativeTime(timer.next_run);
   const lastAgo = formatRelativeTime(timer.last_run);
+  const statusBarColor = getStatusBarColor(timer.last_result);
 
   return (
     <Card className="overflow-hidden">
       <div className="flex items-stretch">
         {/* Status indicator bar */}
-        <div className={`w-1 shrink-0 ${status?.color ?? 'bg-muted'}`} />
-        
+        <div className={`w-1 shrink-0 ${statusBarColor}`} />
+
         <div className="flex-1 p-3 min-w-0">
           {/* Top row: name + enabled badge */}
           <div className="flex items-center gap-2 mb-2">
             <h3 className="font-semibold break-words">
-              {timer.name.replace('.timer', '')}
+              {displayTimerName(timer.name)}
             </h3>
             {!timer.enabled && (
               <Badge variant="outline" className="shrink-0 text-[10px] px-1.5 py-0 text-muted-foreground">
@@ -85,28 +78,43 @@ export function TimerCard({ timer, onRun, onTest, onToggle }: TimerCardProps) {
             size="icon"
             variant="ghost"
             className="h-8 w-8"
-            onClick={() => onRun(timer.name)}
+            onClick={() => handleAction('run', () => onRun(timer.name))}
+            disabled={loadingAction !== null}
             title="Run now"
           >
-            <Play className="h-4 w-4" />
+            {loadingAction === 'run' ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Play className="h-4 w-4" />
+            )}
           </Button>
           <Button
             size="icon"
             variant="ghost"
             className="h-8 w-8"
-            onClick={() => onTest(timer.name)}
+            onClick={() => handleAction('test', () => onTest(timer.name))}
+            disabled={loadingAction !== null}
             title="Test (dry run)"
           >
-            <TestTube className="h-4 w-4" />
+            {loadingAction === 'test' ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <TestTube className="h-4 w-4" />
+            )}
           </Button>
           <Button
             size="icon"
             variant="ghost"
             className={`h-8 w-8 ${timer.enabled ? 'text-emerald-600' : 'text-muted-foreground'}`}
-            onClick={() => onToggle(timer.name, !timer.enabled)}
+            onClick={() => handleAction('toggle', () => onToggle(timer.name, !timer.enabled))}
+            disabled={loadingAction !== null}
             title={timer.enabled ? 'Disable' : 'Enable'}
           >
-            <Power className="h-4 w-4" />
+            {loadingAction === 'toggle' ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Power className="h-4 w-4" />
+            )}
           </Button>
         </div>
       </div>

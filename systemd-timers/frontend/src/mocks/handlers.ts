@@ -4,6 +4,7 @@ import {
   mockAvailableTimers,
   mockSettings,
   mockHistoryByTimer,
+  getAllMockHistory,
   getMockExecutionDetails,
 } from './data';
 import type { TimerStatus, Settings } from '../types';
@@ -115,6 +116,14 @@ export const handlers = [
     );
     console.log('[MSW] Disabled timer:', name);
     return HttpResponse.json({ success: true });
+  }),
+
+  // GET /history - all history combined
+  http.get(`${BASE}/history`, async ({ request }) => {
+    await delay(200);
+    const url = new URL(request.url);
+    const limit = parseInt(url.searchParams.get('limit') || '50', 10);
+    return HttpResponse.json(getAllMockHistory(limit));
   }),
 
   // GET /timers/:name/history

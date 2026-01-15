@@ -1,8 +1,10 @@
+import { toast } from 'sonner';
 import { TimerCard } from './TimerCard';
 import { useTimers } from '../hooks/useTimers';
 import { Button } from '@/components/ui/button';
 import { RefreshCw, AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { displayTimerName } from '@/lib/formatters';
 
 export function TimersTab() {
   const { timers, loading, error, refresh, runTimer, enableTimer, disableTimer } = useTimers();
@@ -10,18 +12,20 @@ export function TimersTab() {
   const handleRun = async (name: string) => {
     try {
       await runTimer(name, false);
+      toast.success(`Started ${displayTimerName(name)}`);
     } catch (err) {
       console.error('Failed to run timer:', err);
-      alert(`Failed to run timer: ${err instanceof Error ? err.message : 'Unknown error'}`);
+      toast.error(`Failed to run timer: ${err instanceof Error ? err.message : 'Unknown error'}`);
     }
   };
 
   const handleTest = async (name: string) => {
     try {
       await runTimer(name, true);
+      toast.success(`Test run started for ${displayTimerName(name)}`);
     } catch (err) {
       console.error('Failed to test timer:', err);
-      alert(`Failed to test timer: ${err instanceof Error ? err.message : 'Unknown error'}`);
+      toast.error(`Failed to test timer: ${err instanceof Error ? err.message : 'Unknown error'}`);
     }
   };
 
@@ -29,12 +33,14 @@ export function TimersTab() {
     try {
       if (shouldEnable) {
         await enableTimer(name);
+        toast.success(`Enabled ${displayTimerName(name)}`);
       } else {
         await disableTimer(name);
+        toast.success(`Disabled ${displayTimerName(name)}`);
       }
     } catch (err) {
       console.error('Failed to toggle timer:', err);
-      alert(`Failed to toggle timer: ${err instanceof Error ? err.message : 'Unknown error'}`);
+      toast.error(`Failed to toggle timer: ${err instanceof Error ? err.message : 'Unknown error'}`);
     }
   };
 
