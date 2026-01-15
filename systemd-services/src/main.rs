@@ -33,17 +33,7 @@ impl SystemdServicesPlugin {
     }
 
     fn get_bundle_js() -> &'static str {
-        // Placeholder for frontend bundle (Phase 7)
-        r#"(function() {
-            console.log('systemd-services plugin loaded');
-            window.ToruPlugins = window.ToruPlugins || {};
-            window.ToruPlugins.systemdServices = {
-                mount: function(container) {
-                    container.innerHTML = '<div style="padding: 20px;">Frontend bundle not yet implemented. See Phase 7.</div>';
-                },
-                unmount: function() {}
-            };
-        })();"#
+        include_str!("../frontend/dist/bundle.js")
     }
 
     fn kv_store(&self) -> Result<&dyn PluginKvStore, PluginError> {
